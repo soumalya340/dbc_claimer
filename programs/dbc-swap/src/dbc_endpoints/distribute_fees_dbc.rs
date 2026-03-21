@@ -15,6 +15,8 @@ use anchor_spl::token_interface::{
 ///
 /// The caller must be in `pool_claimers.claimer_addresses`. Their max
 /// withdrawal is `vault_balance * claimer_bps / 10_000` for each token.
+/// 
+/// 
 pub fn withdraw_from_fee_vault(
     ctx: Context<WithdrawFromFeeVault>,
     base_amount: u64,

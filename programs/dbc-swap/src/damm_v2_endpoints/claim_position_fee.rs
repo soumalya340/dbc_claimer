@@ -90,14 +90,6 @@ pub struct ClaimPositionFee<'info> {
     /// CHECK: Position NFT token account — must be owned by fee_claimer PDA
     pub position_nft_account: UncheckedAccount<'info>,
 
-    /// PDA signer — acts as the position owner for the CPI.
-    /// The position NFT must be held in a token account with this PDA as authority.
-    #[account(
-        seeds = [FEE_CLAIMER_SEED],
-        bump,
-    )]
-    pub fee_claimer: SystemAccount<'info>,
-
     pub token_a_program: Interface<'info, TokenInterface>,
     pub token_b_program: Interface<'info, TokenInterface>,
 
@@ -110,6 +102,14 @@ pub struct ClaimPositionFee<'info> {
     /// Pays rent for vault account creation on the first call.
     #[account(mut)]
     pub payer: Signer<'info>,
+
+    /// PDA signer — acts as the position owner for the CPI.
+    /// The position NFT must be held in a token account with this PDA as authority.
+    #[account(
+        seeds = [FEE_CLAIMER_SEED],
+        bump,
+    )]
+    pub fee_claimer: SystemAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
