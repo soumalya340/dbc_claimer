@@ -1,9 +1,15 @@
 mod consts;
-mod endpoints;
+mod damm_v2_endpoints;
+mod dbc_endpoints;
 mod err;
 mod global_state;
+mod set_pool_claimers;
+mod update_claimers_bps;
 
-use crate::endpoints::*;
+use crate::damm_v2_endpoints::*;
+use crate::dbc_endpoints::*;
+use crate::set_pool_claimers::*;
+use crate::update_claimers_bps::*;
 use anchor_lang::prelude::*;
 use damm_v2::cp_amm;
 use dbc::dynamic_bonding_curve;
@@ -36,10 +42,7 @@ pub mod dbc_swap {
     /// Admin-only — updates only the BPS shares of the existing claimer list
     /// for a pool. Claimer addresses and all claimed amount history are preserved.
     /// Use this to rebalance fee splits without disturbing historical records.
-    pub fn update_claimers_bps(
-        ctx: Context<UpdateClaimersBps>,
-        new_bps: Vec<u16>,
-    ) -> Result<()> {
+    pub fn update_claimers_bps(ctx: Context<UpdateClaimersBps>, new_bps: Vec<u16>) -> Result<()> {
         update_claimers_bps::handle(ctx, new_bps)
     }
 
@@ -87,7 +90,7 @@ pub mod dbc_swap {
         base_amount: u64,
         quote_amount: u64,
     ) -> Result<()> {
-        withdraw_fees::withdraw_from_fee_vault(ctx, base_amount, quote_amount)
+        distribute_fees_dbc::withdraw_from_fee_vault(ctx, base_amount, quote_amount)
     }
 
     /// Permissionless — claims position fees from the cp_amm pool into
@@ -97,6 +100,16 @@ pub mod dbc_swap {
         ctx: Context<'_, '_, '_, 'info, ClaimPositionFee<'info>>,
     ) -> Result<()> {
         claim_position_fee::handle(ctx)
+    }
+
+    /// Permissionless — distributes the entire current fee vault balance to all
+    /// registered claimers proportionally by BPS in a single transaction.
+    /// Designed for the DAMM v2 path. Remaining accounts must be passed as
+    /// [claimer_0_base_ata, claimer_0_quote_ata, claimer_1_base_ata, ...].
+    pub fn distribute_fees<'info>(
+        ctx: Context<'_, '_, '_, 'info, DistributeFees<'info>>,
+    ) -> Result<()> {
+        distribute_fees_damm_v2::handle(ctx)
     }
 
     /// Admin-only — removes liquidity from a cp_amm pool position.

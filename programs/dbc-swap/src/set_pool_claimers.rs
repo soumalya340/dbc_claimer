@@ -15,6 +15,7 @@ use anchor_lang::prelude::*;
 ///   • Caller must be ADMIN_ADDRESS
 ///   • claimer_addresses.len() == claimer_bps.len()
 ///   • len() <= MAX_CLAIMERS (5)
+///   • No duplicate addresses — every address must appear exactly once
 ///   • sum(claimer_bps) MUST equal exactly 10_000 (100%) — partial splits are not allowed
 pub fn handle(
     ctx: Context<SetPoolClaimers>,
@@ -36,6 +37,15 @@ pub fn handle(
         claimer_addresses.len() <= MAX_CLAIMERS,
         DbcSwapError::TooManyClaimers
     );
+
+    for i in 0..claimer_addresses.len() {
+        for j in (i + 1)..claimer_addresses.len() {
+            require!(
+                claimer_addresses[i] != claimer_addresses[j],
+                DbcSwapError::DuplicateClaimerAddress
+            );
+        }
+    }
 
     let total_bps: u32 = claimer_bps.iter().map(|&b| b as u32).sum();
     require!(total_bps == 10_000, DbcSwapError::InvalidTotalBps);

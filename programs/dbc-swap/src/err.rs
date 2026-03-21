@@ -12,4 +12,8 @@ pub enum DbcSwapError {
     InvalidTotalBps,
     #[msg("Caller is not in the pool's claimer list")]
     ClaimerNotFound,
+    #[msg("Not proper ATA")]
+    InvalidClaimerAta,
+    #[msg("Duplicate claimer address — each address must appear exactly once")]
+    DuplicateClaimerAddress,
 }
