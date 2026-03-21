@@ -9,3 +9,4 @@ damm-v2
 .env
 .env.local
 yarn.lock
+deps

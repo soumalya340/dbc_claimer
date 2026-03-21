@@ -7,11 +7,17 @@
     "deps:pin": "cargo update -p blake3 --precise 1.8.2 && cargo update -p indexmap --precise 2.11.4",
     "build": "anchor build",
     "test": "anchor test --skip-local-validator",
+    "test:damm_v2": "ANCHOR_TEST_FILE=tests/damm_v2.test.ts anchor test --skip-local-validator",
+    "test:atomic_create_and_swap": "ANCHOR_TEST_FILE=tests/atomic_create_and_swap.test.ts anchor test --skip-local-validator",
+    "test:claim_fees": "ANCHOR_TEST_FILE=tests/claim_fees.test.ts anchor test --skip-local-validator",
     "start": "solana-test-validator --bpf-program dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN tests/programs/dbc.so"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.0",
-    "@meteora-ag/dynamic-bonding-curve-sdk": "^1.5.3"
+    "@metaplex-foundation/js": "^0.20.1",
+    "@meteora-ag/cp-amm-sdk": "^1.3.8",
+    "@meteora-ag/dynamic-bonding-curve-sdk": "^1.5.3",
+    "@solana/web3.js": "^1.98.4"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.0",

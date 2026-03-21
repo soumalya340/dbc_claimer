@@ -1,7 +1,4 @@
 import { PublicKey } from "@solana/web3.js";
-
-export { setupConfig } from "./createConfig";
-export { createPool } from "./createPool";
 export { wrapSol } from "./wsol";
 export { deriveAllPdas } from "./constant";
 

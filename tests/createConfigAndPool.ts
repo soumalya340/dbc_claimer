@@ -28,11 +28,20 @@ export function loadKeypair(filePath: string): Keypair {
 
 const connection = new Connection(CLUSTER_URL, "confirmed");
 
-export async function setupConfig(
+export async function setupConfigAndPool(
   wallet: Keypair,
   config: Keypair,
   feeclaimer: PublicKey,
-): Promise<void> {
+  thresold: number,
+  baseMint: Keypair,
+  partnerPermanentLockedLiquidityPercentage_args: number = 40,
+  partnerLiquidityPercentage_args: number = 0,
+  creatorPermanentLockedLiquidityPercentage_args: number = 60,
+  creatorLiquidityPercentage_args: number = 0,
+  name: string = "Test",
+  symbol: string = "TEST",
+  uri: string = "",
+): Promise<{ poolAddress: PublicKey }> {
   const client = new DynamicBondingCurveClient(connection, "confirmed");
 
   const preMigrationEndingFeeBps = 500;
@@ -62,8 +71,8 @@ export async function setupConfig(
       baseFeeParams: {
         baseFeeMode: BaseFeeMode.FeeSchedulerExponential,
         feeSchedulerParam: {
-          startingFeeBps: 100,
-          endingFeeBps: 100,
+          startingFeeBps: 400,
+          endingFeeBps: 400,
           numberOfPeriod: 0,
           totalDuration: 0,
         },
@@ -95,10 +104,12 @@ export async function setupConfig(
       },
     },
     liquidityDistribution: {
-      partnerPermanentLockedLiquidityPercentage: 40,
-      partnerLiquidityPercentage: 0,
-      creatorPermanentLockedLiquidityPercentage: 60,
-      creatorLiquidityPercentage: 0,
+      partnerPermanentLockedLiquidityPercentage:
+        partnerPermanentLockedLiquidityPercentage_args,
+      partnerLiquidityPercentage: partnerLiquidityPercentage_args,
+      creatorPermanentLockedLiquidityPercentage:
+        creatorPermanentLockedLiquidityPercentage_args,
+      creatorLiquidityPercentage: creatorLiquidityPercentage_args,
       partnerLiquidityVestingInfoParams: {
         vestingPercentage: 0,
         bpsPerPeriod: 0,
@@ -123,7 +134,7 @@ export async function setupConfig(
     },
     activationType: 1,
     percentageSupplyOnMigration: 20, // 20% of the total supply on migration to DAMMv2
-    migrationQuoteThreshold: 101, // 101 SOL  thresold  for graduation
+    migrationQuoteThreshold: thresold, // 101 SOL  thresold  for graduation
   });
 
   const tx = await client.partner.createConfig({
@@ -154,23 +165,51 @@ export async function setupConfig(
   console.log("✅ Config created! Tx:", signature);
   console.log("Config address:", config.publicKey.toBase58());
   console.log("\n");
+
+  const poolTx = await client.pool.createPool({
+    config: config.publicKey,
+    baseMint: baseMint.publicKey,
+    quoteMint: new PublicKey("So11111111111111111111111111111111111111112"),
+    name,
+    symbol,
+    uri,
+    payer: wallet.publicKey,
+    poolCreator: wallet.publicKey,
+  });
+
+  const { blockhash: poolBlockhash } = await connection.getLatestBlockhash(
+    "confirmed",
+  );
+  poolTx.feePayer = wallet.publicKey;
+  poolTx.recentBlockhash = poolBlockhash;
+
+  const poolSignature = await sendAndConfirmTransaction(
+    connection,
+    poolTx,
+    [wallet, baseMint],
+    {
+      skipPreflight: true,
+      maxRetries: 3,
+    },
+  );
+
+  // Get the actual pool address
+  const pools = await client.state.getPoolsByConfig(config.publicKey);
+
+  if (pools.length === 0) {
+    throw new Error("No pools found for this config");
+  }
+
+  const poolAddress = pools[0].publicKey;
+
+  console.log("\n");
+  console.log("✅ Pool created! Tx:", poolSignature);
+  console.log("\n");
+
+  const threshold = await client.state.getPoolMigrationQuoteThreshold(
+    poolAddress,
+  );
+  console.log(`The migration threshold is ${Number(threshold) / LAMPORTS_PER_SOL} SOL`);
+
+  return { poolAddress };
 }
-
-// async function main() {
-//   const wallet = loadKeypair(KEYPAIR_PATH);
-
-//   console.log("Wallet:", wallet.publicKey.toBase58());
-
-//   const config = Keypair.generate();
-//   console.log("Generated config keypair:", config.publicKey.toBase58());
-
-//   const balanceBefore = await connection.getBalance(wallet.publicKey);
-//   console.log(`Balance: ${balanceBefore / LAMPORTS_PER_SOL} SOL`);
-
-//   const configAddress = await setupConfig(wallet, config);
-
-//   const balanceAfter = await connection.getBalance(wallet.publicKey);
-//   console.log(`Cost: ${(balanceBefore - balanceAfter) / LAMPORTS_PER_SOL} SOL`);
-// }
-
-// main().catch(console.error);

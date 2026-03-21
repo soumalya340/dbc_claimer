@@ -12,7 +12,7 @@ import {
   createSyncNativeInstruction,
 } from "@solana/spl-token";
 import { DbcSwap } from "../target/types/dbc_swap";
-import { setupConfig } from "./helpers";
+import { setupConfigAndPool } from "./createConfigAndPool";
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
@@ -25,9 +25,15 @@ describe("dbc-swap:atomic-create-and-swap", () => {
     const config = Keypair.generate();
     console.log("Config:", config.publicKey.toBase58());
 
-    await setupConfig(payer, config, payer.publicKey);
-
     const baseMint = Keypair.generate();
+    const poolAddress = await setupConfigAndPool(
+      payer,
+      config,
+      payer.publicKey,
+      101,
+      baseMint,
+    );
+
     const quoteMint = new PublicKey(
       "So11111111111111111111111111111111111111112",
     );

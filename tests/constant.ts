@@ -1,5 +1,13 @@
 import { PublicKey } from "@solana/web3.js";
 
+export function deriveFeeClaimerPda(programId: PublicKey): PublicKey {
+  const [feeClaimerPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("fee_claimer")],
+    programId,
+  );
+  return feeClaimerPda;
+}
+
 export function deriveAllPdas(
   programId: PublicKey,
   dbcProgramId: PublicKey,
