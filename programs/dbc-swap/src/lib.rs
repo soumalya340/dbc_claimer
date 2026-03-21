@@ -24,12 +24,23 @@ pub mod dbc_swap {
 
     /// Sets (or replaces) the list of claimers and their BPS fee shares for
     /// a specific pool. Only callable by DEPLOYER_ADDRESS.
+    /// Resets all claimed amounts to zero on each call.
     pub fn set_pool_claimers(
         ctx: Context<SetPoolClaimers>,
         claimer_addresses: Vec<Pubkey>,
         claimer_bps: Vec<u16>,
     ) -> Result<()> {
         set_pool_claimers::handle(ctx, claimer_addresses, claimer_bps)
+    }
+
+    /// Admin-only — updates only the BPS shares of the existing claimer list
+    /// for a pool. Claimer addresses and all claimed amount history are preserved.
+    /// Use this to rebalance fee splits without disturbing historical records.
+    pub fn update_claimers_bps(
+        ctx: Context<UpdateClaimersBps>,
+        new_bps: Vec<u16>,
+    ) -> Result<()> {
+        update_claimers_bps::handle(ctx, new_bps)
     }
 
     /// Creates a new virtual pool with a Token2022 base mint via CPI into DBC.
@@ -62,7 +73,7 @@ pub mod dbc_swap {
         max_amount_a: u64,
         max_amount_b: u64,
     ) -> Result<()> {
-        claim_partner_fees_in_vault::handle(ctx, max_amount_a, max_amount_b)
+        claim_partner_fees_in_dbc::handle(ctx, max_amount_a, max_amount_b)
     }
 
     /// Claimer-gated — withdraws a caller's BPS share of the per-pool fee

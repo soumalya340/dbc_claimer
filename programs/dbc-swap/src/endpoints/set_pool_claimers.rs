@@ -6,11 +6,16 @@ use anchor_lang::prelude::*;
 /// Deployer-only — sets (or replaces) the list of claimers and their
 /// basis-point shares for a specific pool address.
 ///
+/// The `pool_claimers` account uses `init_if_needed`, meaning this instruction
+/// can be called multiple times to update the claimer list and BPS shares for
+/// an existing pool. Each call fully overwrites the previous configuration and
+/// resets all claimed amounts to zero.
+///
 /// Constraints:
 ///   • Caller must be ADMIN_ADDRESS
 ///   • claimer_addresses.len() == claimer_bps.len()
 ///   • len() <= MAX_CLAIMERS (5)
-///   • sum(claimer_bps) <= 10_000
+///   • sum(claimer_bps) MUST equal exactly 10_000 (100%) — partial splits are not allowed
 pub fn handle(
     ctx: Context<SetPoolClaimers>,
     claimer_addresses: Vec<Pubkey>,
