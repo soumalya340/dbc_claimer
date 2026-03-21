@@ -1,5 +1,6 @@
 use crate::consts::{ADMIN_ADDRESS, POOL_CLAIMERS_SEED};
 use crate::err::DbcSwapError;
+use crate::events::ClaimersBpsUpdated;
 use crate::global_state::PoolClaimers;
 use anchor_lang::prelude::*;
 
@@ -34,6 +35,12 @@ pub fn handle(ctx: Context<UpdateClaimersBps>, new_bps: Vec<u16>) -> Result<()> 
     require!(total_bps == 10_000, DbcSwapError::InvalidTotalBps);
 
     pc.claimer_bps = new_bps;
+
+    emit!(ClaimersBpsUpdated {
+        pool: pc.pool,
+        new_bps: pc.claimer_bps.clone(),
+        timestamp: Clock::get()?.unix_timestamp,
+    });
 
     Ok(())
 }

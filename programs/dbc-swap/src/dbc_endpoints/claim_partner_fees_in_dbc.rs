@@ -1,4 +1,6 @@
-use crate::consts::{FEE_CLAIMER_SEED, FEE_VAULT_SEED};
+use crate::consts::{FEE_CLAIMER_SEED, FEE_VAULT_SEED, POOL_CLAIMERS_SEED};
+use crate::events::PartnerFeesClaimed;
+use crate::global_state::PoolClaimers;
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use dbc::dynamic_bonding_curve;
@@ -48,7 +50,17 @@ pub fn handle<'info>(
         signer_seeds,
     );
 
-    dynamic_bonding_curve::cpi::claim_trading_fee(cpi_ctx, max_amount_a, max_amount_b)
+    dynamic_bonding_curve::cpi::claim_trading_fee(cpi_ctx, max_amount_a, max_amount_b)?;
+
+    let now = Clock::get()?.unix_timestamp;
+    ctx.accounts.pool_claimers.last_claimed = now;
+
+    emit!(PartnerFeesClaimed {
+        pool: ctx.accounts.pool.key(),
+        timestamp: now,
+    });
+
+    Ok(())
 }
 
 #[derive(Accounts)]
@@ -62,6 +74,14 @@ pub struct ClaimPartnerTradingFee<'info> {
     /// CHECK: DBC pool state
     #[account(mut)]
     pub pool: UncheckedAccount<'info>,
+
+    /// Per-pool claimers config — last_claimed is stamped after each successful claim.
+    #[account(
+        mut,
+        seeds = [POOL_CLAIMERS_SEED, pool.key().as_ref()],
+        bump = pool_claimers.bump,
+    )]
+    pub pool_claimers: Account<'info, PoolClaimers>,
 
     /// Per-pool PDA-owned vault that accumulates base token fees.
     /// Created on first call (init_if_needed).

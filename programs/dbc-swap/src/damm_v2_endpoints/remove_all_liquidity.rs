@@ -1,5 +1,6 @@
 use crate::consts::{ADMIN_ADDRESS, FEE_CLAIMER_SEED};
 use crate::err::DbcSwapError;
+use crate::events::AllLiquidityRemoved;
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::TokenAccount;
 use damm_v2::cp_amm;
@@ -40,7 +41,17 @@ pub fn handle<'info>(
         signer_seeds,
     );
 
-    cp_amm::cpi::remove_all_liquidity(cpi_ctx, token_a_amount_threshold, token_b_amount_threshold)
+    cp_amm::cpi::remove_all_liquidity(cpi_ctx, token_a_amount_threshold, token_b_amount_threshold)?;
+
+    emit!(AllLiquidityRemoved {
+        pool: ctx.accounts.pool.key(),
+        admin: ctx.accounts.admin.key(),
+        token_a_threshold: token_a_amount_threshold,
+        token_b_threshold: token_b_amount_threshold,
+        timestamp: Clock::get()?.unix_timestamp,
+    });
+
+    Ok(())
 }
 
 #[derive(Accounts)]

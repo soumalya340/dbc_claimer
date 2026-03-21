@@ -1,5 +1,6 @@
 use crate::consts::{FEE_CLAIMER_SEED, FEE_VAULT_SEED, POOL_CLAIMERS_SEED};
 use crate::err::DbcSwapError;
+use crate::events::FeesDistributedDammV2;
 use crate::global_state::PoolClaimers;
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::get_associated_token_address_with_program_id;
@@ -144,6 +145,16 @@ pub fn handle<'info>(ctx: Context<'_, '_, '_, 'info, DistributeFees<'info>>) -> 
         pc.claimed_base[i] = pc.claimed_base[i].checked_add(base_amount).unwrap();
         pc.claimed_quote[i] = pc.claimed_quote[i].checked_add(quote_amount).unwrap();
     }
+
+    let now = Clock::get()?.unix_timestamp;
+    ctx.accounts.pool_claimers.last_distributed = now;
+
+    emit!(FeesDistributedDammV2 {
+        pool: ctx.accounts.pool.key(),
+        total_base_distributed: base_distributed,
+        total_quote_distributed: quote_distributed,
+        timestamp: now,
+    });
 
     Ok(())
 }

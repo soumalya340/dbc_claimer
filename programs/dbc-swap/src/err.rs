@@ -16,4 +16,6 @@ pub enum DbcSwapError {
     InvalidClaimerAta,
     #[msg("Duplicate claimer address — each address must appear exactly once")]
     DuplicateClaimerAddress,
+    #[msg("pool_state must be Dbc or DammV2 — NotInitialized is not allowed")]
+    InvalidPoolState,
 }

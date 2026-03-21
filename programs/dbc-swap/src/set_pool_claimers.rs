@@ -1,6 +1,7 @@
 use crate::consts::{ADMIN_ADDRESS, ANCHOR_DISCRIMINATOR_SIZE, MAX_CLAIMERS, POOL_CLAIMERS_SEED};
 use crate::err::DbcSwapError;
-use crate::global_state::PoolClaimers;
+use crate::events::PoolClaimersSet;
+use crate::global_state::{PoolClaimers, PoolState};
 use anchor_lang::prelude::*;
 
 /// Deployer-only — sets (or replaces) the list of claimers and their
@@ -17,15 +18,22 @@ use anchor_lang::prelude::*;
 ///   • len() <= MAX_CLAIMERS (5)
 ///   • No duplicate addresses — every address must appear exactly once
 ///   • sum(claimer_bps) MUST equal exactly 10_000 (100%) — partial splits are not allowed
+///   • `pool_state` must be `DBC` or `DAMM_V2` — `NOT_INITIALIZED` is rejected
 pub fn handle(
     ctx: Context<SetPoolClaimers>,
     claimer_addresses: Vec<Pubkey>,
     claimer_bps: Vec<u16>,
+    pool_state: PoolState,
 ) -> Result<()> {
     require_keys_eq!(
         ctx.accounts.deployer.key(),
         ADMIN_ADDRESS,
         DbcSwapError::Unauthorized
+    );
+
+    require!(
+        pool_state == PoolState::Dbc || pool_state == PoolState::DammV2,
+        DbcSwapError::InvalidPoolState
     );
 
     require!(
@@ -58,6 +66,16 @@ pub fn handle(
     pc.claimed_base = vec![0u64; len];
     pc.claimed_quote = vec![0u64; len];
     pc.bump = ctx.bumps.pool_claimers;
+    pc.pool_state = pool_state;
+
+    let now = Clock::get()?.unix_timestamp;
+    emit!(PoolClaimersSet {
+        pool: pc.pool,
+        claimer_addresses: pc.claimer_addresses.clone(),
+        claimer_bps: pc.claimer_bps.clone(),
+        pool_state: pc.pool_state.clone(),
+        timestamp: now,
+    });
 
     Ok(())
 }

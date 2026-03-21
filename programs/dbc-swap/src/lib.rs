@@ -2,12 +2,14 @@ mod consts;
 mod damm_v2_endpoints;
 mod dbc_endpoints;
 mod err;
+mod events;
 mod global_state;
 mod set_pool_claimers;
 mod update_claimers_bps;
 
 use crate::damm_v2_endpoints::*;
 use crate::dbc_endpoints::*;
+use crate::global_state::PoolState;
 use crate::set_pool_claimers::*;
 use crate::update_claimers_bps::*;
 use anchor_lang::prelude::*;
@@ -31,12 +33,14 @@ pub mod dbc_swap {
     /// Sets (or replaces) the list of claimers and their BPS fee shares for
     /// a specific pool. Only callable by DEPLOYER_ADDRESS.
     /// Resets all claimed amounts to zero on each call.
+    /// `pool_state` must be `Dbc` or `DammV2` — determines which fee path applies.
     pub fn set_pool_claimers(
         ctx: Context<SetPoolClaimers>,
         claimer_addresses: Vec<Pubkey>,
         claimer_bps: Vec<u16>,
+        pool_state: PoolState,
     ) -> Result<()> {
-        set_pool_claimers::handle(ctx, claimer_addresses, claimer_bps)
+        set_pool_claimers::handle(ctx, claimer_addresses, claimer_bps, pool_state)
     }
 
     /// Admin-only — updates only the BPS shares of the existing claimer list

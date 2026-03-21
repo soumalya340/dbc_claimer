@@ -1,5 +1,6 @@
 use crate::consts::{FEE_CLAIMER_SEED, FEE_VAULT_SEED, POOL_CLAIMERS_SEED};
 use crate::err::DbcSwapError;
+use crate::events::FeesDistributedDbc;
 use crate::global_state::PoolClaimers;
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{
@@ -105,6 +106,7 @@ pub fn withdraw_from_fee_vault(
     }
 
     // Update per-claimer withdrawal tracking
+    let now = Clock::get()?.unix_timestamp;
     let pc = &mut ctx.accounts.pool_claimers;
     pc.claimed_base[claimer_index] = pc.claimed_base[claimer_index]
         .checked_add(actual_base)
@@ -112,6 +114,15 @@ pub fn withdraw_from_fee_vault(
     pc.claimed_quote[claimer_index] = pc.claimed_quote[claimer_index]
         .checked_add(actual_quote)
         .unwrap();
+    pc.last_distributed = now;
+
+    emit!(FeesDistributedDbc {
+        pool: ctx.accounts.pool.key(),
+        claimer: ctx.accounts.claimer.key(),
+        base_amount: actual_base,
+        quote_amount: actual_quote,
+        timestamp: now,
+    });
 
     Ok(())
 }
