@@ -1,7 +1,6 @@
 // @ts-nocheck
 import {
   PublicKey,
-  Connection,
   Keypair,
   Transaction,
   sendAndConfirmTransaction,
@@ -10,14 +9,13 @@ import {
 import {
   BaseFeeMode,
   DammV2BaseFeeMode,
-  DynamicBondingCurveClient,
   buildCurve,
   getMigratedPoolMarketCapFeeSchedulerParams,
 } from "@meteora-ag/dynamic-bonding-curve-sdk";
+import { connection, client } from "./helpers";
 import { readFileSync } from "fs";
 import { BN } from "bn.js";
 
-export const CLUSTER_URL = "http://localhost:8899";
 export const KEYPAIR_PATH = "/Users/soumalyapaul/.config/solana/id.json";
 
 export function loadKeypair(filePath: string): Keypair {
@@ -25,8 +23,6 @@ export function loadKeypair(filePath: string): Keypair {
   const arr = JSON.parse(raw);
   return Keypair.fromSecretKey(Uint8Array.from(arr));
 }
-
-const connection = new Connection(CLUSTER_URL, "confirmed");
 
 export async function setupConfigAndPool(
   wallet: Keypair,
@@ -42,8 +38,6 @@ export async function setupConfigAndPool(
   symbol: string = "TEST",
   uri: string = "",
 ): Promise<{ poolAddress: PublicKey }> {
-  const client = new DynamicBondingCurveClient(connection, "confirmed");
-
   const preMigrationEndingFeeBps = 500;
   const postMigrationEndingFeeBps = 1;
   const dammV2BaseFeeMode = DammV2BaseFeeMode.FeeTimeSchedulerLinear;

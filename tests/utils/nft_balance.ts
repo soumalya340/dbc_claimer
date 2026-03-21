@@ -5,9 +5,7 @@ import {
   getTokenMetadata,
 } from "@solana/spl-token";
 import { Metaplex } from "@metaplex-foundation/js";
-
-const CLUSTER_URL = "http://localhost:8899";
-const connection = new Connection(CLUSTER_URL, "confirmed");
+import { connection } from "./helpers";
 
 async function getNftMetadata(
   connection: Connection,

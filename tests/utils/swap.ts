@@ -12,13 +12,10 @@ import {
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
-import { DynamicBondingCurveClient } from "@meteora-ag/dynamic-bonding-curve-sdk";
 import * as anchor from "@coral-xyz/anchor";
 import BN from "bn.js";
 import { wrapSol } from "./wsol";
-
-const CLUSTER_URL = "http://localhost:8899";
-const connection = new Connection(CLUSTER_URL, "confirmed");
+import { connection, client } from "./helpers";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -99,7 +96,6 @@ export async function swap(
 ): Promise<SwapResult> {
   let referralTokenAccount = null;
 
-  const client = new DynamicBondingCurveClient(connection, "confirmed");
   const poolPk = new PublicKey(poolAddress);
   const WSOL = new PublicKey("So11111111111111111111111111111111111111112");
 
@@ -160,12 +156,13 @@ export async function swap(
   const baseBefore = await getUiBalance(connection, baseAta);
   const quoteBefore = await getUiBalance(connection, wsolAta);
 
-  // ── 6. Execute swap ───────────────────────────────────────────────────────
-  const swapTx = await client.pool.swap({
+  // ── 6. Execute swap (PartialFill mode to handle curve completion) ────────
+  const swapTx = await client.pool.swap2({
     owner: payer.publicKey,
     amountIn: amountInBN,
     minimumAmountOut: new BN(0),
     swapBaseForQuote,
+    swapMode: 1, // PartialFill
     pool: poolPk,
     referralTokenAccount,
     payer: payer.publicKey,

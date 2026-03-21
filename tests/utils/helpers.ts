@@ -1,6 +1,14 @@
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Connection } from "@solana/web3.js";
+import { DynamicBondingCurveClient } from "@meteora-ag/dynamic-bonding-curve-sdk";
+import { CpAmm } from "@meteora-ag/cp-amm-sdk";
+
 export { wrapSol } from "./wsol";
 export { deriveAllPdas } from "./constant";
+
+const CLUSTER_URL = "http://localhost:8899";
+export const connection = new Connection(CLUSTER_URL, "confirmed");
+export const client = new DynamicBondingCurveClient(connection, "confirmed");
+export const cpAmm = new CpAmm(connection);
 
 export const DBC_PROGRAM_ID = new PublicKey(
   "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",

@@ -10,7 +10,7 @@
     "test:damm_v2": "ANCHOR_TEST_FILE=tests/damm_v2.test.ts anchor test --skip-local-validator",
     "test:atomic_create_and_swap": "ANCHOR_TEST_FILE=tests/atomic_create_and_swap.test.ts anchor test --skip-local-validator",
     "test:claim_fees": "ANCHOR_TEST_FILE=tests/claim_fees.test.ts anchor test --skip-local-validator",
-    "start": "solana-test-validator --bpf-program dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN tests/programs/dbc.so"
+    "start": "solana-test-validator --bpf-program dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN tests/programs/dbc.so --bpf-program cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG tests/programs/cpmm.so --clone 8CNy9goNQNLM4wtgRw528tUQGMKD3vSuFRZY2gLGLLvF --clone A8gMrEPJkacWkcb3DGwtJwTe16HktSEfvwtuDh2MCtck -u mainnet-beta"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.0",

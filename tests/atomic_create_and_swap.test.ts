@@ -12,7 +12,7 @@ import {
   createSyncNativeInstruction,
 } from "@solana/spl-token";
 import { DbcSwap } from "../target/types/dbc_swap";
-import { setupConfigAndPool } from "./createConfigAndPool";
+import { setupConfigAndPool } from "./utils/createConfigAndPool";
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
