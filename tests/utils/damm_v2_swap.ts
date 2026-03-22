@@ -5,7 +5,6 @@ import {
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import BN from "bn.js";
-import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { type PoolState, getTokenProgram } from "@meteora-ag/cp-amm-sdk";
 import { cpAmm, connection } from "./helpers";
 
@@ -38,8 +37,8 @@ export async function dammV2Swap(
     tokenBVault: poolState.tokenBVault,
     tokenAMint: poolState.tokenAMint,
     tokenBMint: poolState.tokenBMint,
-    tokenAProgram: TOKEN_2022_PROGRAM_ID,
-    tokenBProgram: TOKEN_2022_PROGRAM_ID,
+    tokenAProgram: getTokenProgram(poolState.tokenAFlag),
+    tokenBProgram: getTokenProgram(poolState.tokenBFlag),
     referralTokenAccount: null,
   });
 
