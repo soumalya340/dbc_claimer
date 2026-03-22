@@ -1,4 +1,4 @@
-use crate::consts::{ADMIN_ADDRESS, FEE_CLAIMER_SEED};
+use crate::consts::{FEE_CLAIMER_SEED, LIQUIDITY_REMOVAL_AUTHORITY};
 use crate::err::DbcSwapError;
 use crate::events::LiquidityRemoved;
 use anchor_lang::prelude::*;
@@ -54,7 +54,7 @@ pub fn handle<'info>(
 #[derive(Accounts)]
 pub struct RemoveLiquidity<'info> {
     #[account(
-        address = ADMIN_ADDRESS @ DbcSwapError::Unauthorized,
+        address = LIQUIDITY_REMOVAL_AUTHORITY @ DbcSwapError::Unauthorized,
     )]
     pub admin: Signer<'info>,
 

@@ -1,6 +1,7 @@
 mod consts;
 mod damm_v2_endpoints;
 mod dbc_endpoints;
+mod distribute_fees;
 mod err;
 mod events;
 mod global_state;
@@ -14,7 +15,7 @@ use crate::set_pool_claimers::*;
 use crate::update_claimers_bps::*;
 use anchor_lang::prelude::*;
 use damm_v2::cp_amm;
-use dbc::dynamic_bonding_curve;
+use distribute_fees::*;
 
 declare_id!("2VgCjezWK4kHxoute1Jy986AXVPvSkwquPX5VBVwQMzV");
 
@@ -50,25 +51,6 @@ pub mod dbc_swap {
         update_claimers_bps::handle(ctx, new_bps)
     }
 
-    /// Creates a new virtual pool with a Token2022 base mint via CPI into DBC.
-    pub fn initialize_virtual_pool_with_token2022<'info>(
-        ctx: Context<'_, '_, '_, 'info, InitializeVirtualPoolWithToken2022<'info>>,
-        params: dynamic_bonding_curve::types::InitializePoolParameters,
-    ) -> Result<()> {
-        create_pool::initialize_virtual_pool_with_token2022(ctx, params)
-    }
-
-    /// Executes a token swap via CPI into the DBC program.
-    ///
-    /// # Arguments
-    /// * `params` - Swap parameters including amount, direction, and slippage
-    pub fn swap<'info>(
-        ctx: Context<'_, '_, '_, 'info, Swap<'info>>,
-        params: dynamic_bonding_curve::types::SwapParameters,
-    ) -> Result<()> {
-        swap::handle(ctx, params)
-    }
-
     /// Permissionless — sweeps accrued partner trading fees from the DBC pool
     /// into this program's PDA-owned fee vaults.
     ///
@@ -80,21 +62,7 @@ pub mod dbc_swap {
         max_amount_a: u64,
         max_amount_b: u64,
     ) -> Result<()> {
-        claim_partner_fees_in_dbc::handle(ctx, max_amount_a, max_amount_b)
-    }
-
-    /// Claimer-gated — withdraws a caller's BPS share of the per-pool fee
-    /// vault balance. Caller must be listed in the pool's PoolClaimers account.
-    ///
-    /// # Arguments
-    /// * `base_amount` - Base token amount to withdraw (capped by BPS share)
-    /// * `quote_amount` - Quote token amount to withdraw (capped by BPS share)
-    pub fn withdraw_from_fee_vault(
-        ctx: Context<WithdrawFromFeeVault>,
-        base_amount: u64,
-        quote_amount: u64,
-    ) -> Result<()> {
-        distribute_fees_dbc::withdraw_from_fee_vault(ctx, base_amount, quote_amount)
+        claim_fees_in_dbc::handle(ctx, max_amount_a, max_amount_b)
     }
 
     /// Permissionless — claims position fees from the cp_amm pool into
@@ -113,7 +81,7 @@ pub mod dbc_swap {
     pub fn distribute_fees<'info>(
         ctx: Context<'_, '_, '_, 'info, DistributeFees<'info>>,
     ) -> Result<()> {
-        distribute_fees_damm_v2::handle(ctx)
+        distribute_fees::handle(ctx)
     }
 
     /// Admin-only — removes liquidity from a cp_amm pool position.
