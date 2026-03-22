@@ -229,3 +229,16 @@
 12. Call `distributeFees` — pushes the entire vault balance to the sole 100% claimer.
 13. Read the admin payer's quote ATA balance. **Assert (strict):** the payer received exactly the full vault amount — not even 1 lamport less.
 14. Fetch the final PDA state via `fetchclaimerspdainfo`. **Assert:** `claimedQuote[0]` equals the exact fee vault amount.
+
+## Test Case 2 : -- just check if we do multiple people for users to claim
+
+1. First intialize a poolclaimers with 3 users ,
+   admin , user 2 , user3 -- 20 % , 30% , 50 %
+2. check each users percentage should exactly the same , fetch the claimers pda using fetchclaimerspdainfo
+3. call setupMigrate
+4. claim fee, distribute and check if everyone got equally -- call it through user 1(random keypair )
+5. change the percentages from , using updateFeeBps function, and change it to 50% , 50% ,0
+6. swap  using swap.ts in utils 
+7. claim and distribute fees
+8. check if everyone got properly or not.
+

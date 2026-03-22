@@ -1,6 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import {
+  Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
@@ -31,7 +32,12 @@ import {
 import { DbcSwap } from "../target/types/dbc_swap";
 import { assert } from "chai";
 
-import { setupPoolAndMigrate } from "./test_helpers/dammv2";
+import {
+  setupPoolAndMigrate,
+  createRandomKeyPair,
+} from "./test_helpers/dammv2";
+import { swap } from "./utils/swap";
+import { setupConfigAndPool } from "./utils/createConfigAndPool";
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
@@ -115,114 +121,434 @@ describe("dbc-swap:dbc", () => {
       program.programId,
     );
 
-    // // Step 4: Claim partner trading fees from the DBC pool into our fee vaults
-    // await program.methods
-    //   .claimPartnerTradingFee(
-    //     new anchor.BN("18446744073709551615"), // u64::MAX — claim all base
-    //     new anchor.BN("18446744073709551615"), // u64::MAX — claim all quote
-    //   )
-    //   .accounts({
-    //     poolAuthority: dbcPoolAuthority,
-    //     config: config.publicKey,
-    //     pool: poolAddress,
-    //     poolClaimers: dbcPoolClaimersPda,
-    //     baseFeeVault,
-    //     quoteFeeVault,
-    //     basePoolVault: dbcPoolState.baseVault,
-    //     quotePoolVault: dbcPoolState.quoteVault,
-    //     baseMint: baseMint.publicKey,
-    //     quoteMint: WSOL_MINT,
-    //     feeClaimer: feeClaimerPda,
-    //     tokenBaseProgram: TOKEN_2022_PROGRAM_ID,
-    //     tokenQuoteProgram: TOKEN_PROGRAM_ID,
-    //     eventAuthority: dbcEventAuthority,
-    //     dbcProgram: DBC_PROGRAM_ID,
-    //     payer: payer.publicKey,
-    //     systemProgram: SystemProgram.programId,
-    //   } as any)
-    //   .signers([payer])
-    //   .rpc();
+    // Step 3: Fetch DBC pool state to get the pool's token vaults
+    const dbcPoolState = await client.state.getPool(poolAddress);
 
-    // // Step 5: Assert the quote fee vault holds non-zero fees
-    // const quoteVaultBalance = await provider.connection.getTokenAccountBalance(
-    //   quoteFeeVault,
-    // );
-    // const quoteAmount = Number(quoteVaultBalance.value.amount);
-    // assert.isTrue(
-    //   quoteAmount > 0,
-    //   "quote fee vault must hold non-zero fees after claimPartnerTradingFee",
-    // );
+    // Step 4: Claim partner trading fees from the DBC pool into our fee vaults
+    await program.methods
+      .claimPartnerTradingFee(
+        new anchor.BN("18446744073709551615"), // u64::MAX — claim all base
+        new anchor.BN("18446744073709551615"), // u64::MAX — claim all quote
+      )
+      .accounts({
+        poolAuthority: dbcPoolAuthority,
+        config: config.publicKey,
+        pool: poolAddress,
+        poolClaimers: dbcPoolClaimersPda,
+        baseFeeVault,
+        quoteFeeVault,
+        basePoolVault: dbcPoolState.baseVault,
+        quotePoolVault: dbcPoolState.quoteVault,
+        baseMint: baseMint.publicKey,
+        quoteMint: WSOL_MINT,
+        feeClaimer: feeClaimerPda,
+        tokenBaseProgram: TOKEN_2022_PROGRAM_ID,
+        tokenQuoteProgram: TOKEN_PROGRAM_ID,
+        eventAuthority: dbcEventAuthority,
+        dbcProgram: DBC_PROGRAM_ID,
+        payer: payer.publicKey,
+        systemProgram: SystemProgram.programId,
+      } as any)
+      .signers([payer])
+      .rpc();
 
-    // // Step 6: Create admin ATAs for base + quote tokens
-    // const payerBaseAta = getAssociatedTokenAddressSync(
-    //   baseMint.publicKey,
-    //   payer.publicKey,
-    //   false,
-    //   TOKEN_2022_PROGRAM_ID,
-    // );
-    // const payerQuoteAta = getAssociatedTokenAddressSync(
-    //   WSOL_MINT,
-    //   payer.publicKey,
-    //   false,
-    //   TOKEN_PROGRAM_ID,
-    // );
+    // Step 5: Assert the quote fee vault holds non-zero fees
+    const quoteVaultBalance = await provider.connection.getTokenAccountBalance(
+      quoteFeeVault,
+    );
+    console.log(
+      "quoteVaultBalance after claimPartnerTradingFee (DBC): ",
+      Number(quoteVaultBalance.value.amount) / LAMPORTS_PER_SOL,
+    );
+    const quoteAmount = Number(quoteVaultBalance.value.amount);
+    console.log(
+      "Quote Vault Balance After Claim: ",
+      Number(quoteAmount) / LAMPORTS_PER_SOL,
+    );
 
-    // const createAtaTx = new anchor.web3.Transaction().add(
-    //   createAssociatedTokenAccountIdempotentInstruction(
-    //     payer.publicKey,
-    //     payerBaseAta,
-    //     payer.publicKey,
-    //     baseMint.publicKey,
-    //     TOKEN_2022_PROGRAM_ID,
-    //   ),
-    //   createAssociatedTokenAccountIdempotentInstruction(
-    //     payer.publicKey,
-    //     payerQuoteAta,
-    //     payer.publicKey,
-    //     WSOL_MINT,
-    //     TOKEN_PROGRAM_ID,
-    //   ),
-    // );
-    // await sendAndConfirmTransaction(provider.connection, createAtaTx, [payer]);
+    assert.equal(
+      quoteVaultBalance.value.amount,
+      unclaimed.partnerQuoteFee.toString(),
+      "Quote Vault Amount should exactly equal partner quote claimed into vault",
+    );
 
-    // // Step 7: Distribute fees — 100% to admin
-    // await distribute_fees(
-    //   program,
-    //   payer,
-    //   poolAddress,
-    //   dbcPoolClaimersPda,
-    //   baseFeeVault,
-    //   quoteFeeVault,
-    //   { tokenAMint: baseMint.publicKey, tokenBMint: WSOL_MINT },
-    //   feeClaimerPda,
-    //   TOKEN_2022_PROGRAM_ID,
-    //   TOKEN_PROGRAM_ID,
-    //   [
-    //     { pubkey: payerBaseAta, isSigner: false, isWritable: true },
-    //     { pubkey: payerQuoteAta, isSigner: false, isWritable: true },
-    //   ],
-    // );
+    // Step 6: Create admin ATAs for base + quote tokens
+    const payerBaseAta = getAssociatedTokenAddressSync(
+      baseMint.publicKey,
+      payer.publicKey,
+      false,
+      TOKEN_2022_PROGRAM_ID,
+    );
+    const payerQuoteAta = getAssociatedTokenAddressSync(
+      WSOL_MINT,
+      payer.publicKey,
+      false,
+      TOKEN_PROGRAM_ID,
+    );
 
-    // // Step 8: Assert admin received exactly 100% of the quote fees
-    // const payerQuoteBalance = await provider.connection.getTokenAccountBalance(
-    //   payerQuoteAta,
-    // );
-    // assert.strictEqual(
-    //   Number(payerQuoteBalance.value.amount),
-    //   quoteAmount,
-    //   `admin must receive exactly 100% of fees (${quoteAmount} lamports)`,
-    // );
+    const createAtaTx = new anchor.web3.Transaction().add(
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        payerBaseAta,
+        payer.publicKey,
+        baseMint.publicKey,
+        TOKEN_2022_PROGRAM_ID,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        payerQuoteAta,
+        payer.publicKey,
+        WSOL_MINT,
+        TOKEN_PROGRAM_ID,
+      ),
+    );
+    await sendAndConfirmTransaction(provider.connection, createAtaTx, [payer]);
 
-    // // Step 9: Assert PDA claimedQuote reflects the full amount
-    // const finalInfo = await fetchclaimerspdainfo(
-    //   program,
-    //   dbcPoolClaimersPda,
-    //   false,
-    // );
-    // assert.strictEqual(
-    //   finalInfo.claimedQuote[0].toNumber(),
-    //   quoteAmount,
-    //   "PDA claimedQuote must equal the exact fee vault amount",
-    // );
+    // Step 7: Distribute fees — 100% to admin
+    await distribute_fees(
+      program,
+      payer,
+      poolAddress,
+      dbcPoolClaimersPda,
+      baseFeeVault,
+      quoteFeeVault,
+      { tokenAMint: baseMint.publicKey, tokenBMint: WSOL_MINT },
+      feeClaimerPda,
+      TOKEN_2022_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      [
+        { pubkey: payerBaseAta, isSigner: false, isWritable: true },
+        { pubkey: payerQuoteAta, isSigner: false, isWritable: true },
+      ],
+    );
+
+    // Step 8: Assert admin received exactly 100% of the quote fees
+    const payerQuoteBalance = await provider.connection.getTokenAccountBalance(
+      payerQuoteAta,
+    );
+    console.log(
+      "Admin Quote Balance After Distribution: ",
+      Number(payerQuoteBalance.value.amount) / LAMPORTS_PER_SOL,
+    );
+    assert.strictEqual(
+      Number(payerQuoteBalance.value.amount),
+      quoteAmount,
+      `Admin must receive exactly 100% of fees (${quoteAmount} lamports)`,
+    );
+  });
+
+  it("test2: multi-claimer proportional distribution and BPS update", async () => {
+    const payer = (provider.wallet as any).payer;
+
+    // ── Setup ────────────────────────────────────────────────────────────────
+    const user1 = await createRandomKeyPair(12); // permissionless caller for claims
+    const user2 = await createRandomKeyPair(2);
+    const user3 = await createRandomKeyPair(2);
+
+    const config = Keypair.generate();
+    const baseMint = Keypair.generate();
+
+    // Use a very high migration threshold (10 000 SOL) so the pool stays active
+    // for both swap rounds without triggering migration.
+    const { poolAddress } = await setupConfigAndPool(
+      payer,
+      config,
+      feeClaimerPda,
+      10_000,
+      baseMint,
+      10, // partnerPermanentLockedLiquidityPercentage
+      90, // partnerLiquidityPercentage
+      0, // creatorPermanentLockedLiquidityPercentage
+      0, // creatorLiquidityPercentage
+      0, // creatorTradingFeePercentage — 100% of trading fees go to partner
+    );
+
+    const dbcPoolClaimersPda = derivePoolClaimersPda(
+      poolAddress,
+      program.programId,
+    );
+
+    // ── Step 1: Initialize pool claimers — admin 20%, user2 30%, user3 50% ──
+    await program.methods
+      .setPoolClaimers(
+        [payer.publicKey, user2.publicKey, user3.publicKey],
+        [2000, 3000, 5000],
+        { dbc: {} },
+      )
+      .accounts({
+        deployer: payer.publicKey,
+        pool: poolAddress,
+        poolClaimers: dbcPoolClaimersPda,
+        systemProgram: SystemProgram.programId,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    // ── Step 2: Verify initial PDA state ────────────────────────────────────
+    const initialInfo = await fetchclaimerspdainfo(
+      program,
+      dbcPoolClaimersPda,
+      false,
+    );
+    assert.deepEqual(initialInfo.claimerBps, [2000, 3000, 5000]);
+    assert.deepEqual(
+      initialInfo.claimedBase.map((n: anchor.BN) => n.toNumber()),
+      [0, 0, 0],
+    );
+    assert.deepEqual(
+      initialInfo.claimedQuote.map((n: anchor.BN) => n.toNumber()),
+      [0, 0, 0],
+    );
+    assert.strictEqual(initialInfo.lastDistributed.toNumber(), 0);
+    assert.strictEqual(initialInfo.lastClaimed.toNumber(), 0);
+
+    // ── Step 3: Round-1 swap to generate DBC trading fees ───────────────────
+    await swap(payer, poolAddress, 5, false);
+
+    const { current: unclaimedRound1 } = await client.state.getPoolFeeMetrics(
+      poolAddress,
+    );
+    console.log(
+      "Round 1 partner quote fee (SOL):",
+      Number(unclaimedRound1.partnerQuoteFee) / LAMPORTS_PER_SOL,
+    );
+
+    // ── Step 4: Derive fee vaults and DBC pool vaults ────────────────────────
+    const { baseFeeVault, quoteFeeVault } = deriveCpAmmFeeVaults(
+      poolAddress,
+      baseMint.publicKey,
+      WSOL_MINT,
+      program.programId,
+    );
+    const dbcPoolState = await client.state.getPool(poolAddress);
+
+    // ── Step 5: Create ATAs for all 3 claimers ───────────────────────────────
+    const claimers = [payer.publicKey, user2.publicKey, user3.publicKey];
+    const baseATAs = claimers.map((c) =>
+      getAssociatedTokenAddressSync(
+        baseMint.publicKey,
+        c,
+        false,
+        TOKEN_2022_PROGRAM_ID,
+      ),
+    );
+    const quoteATAs = claimers.map((c) =>
+      getAssociatedTokenAddressSync(WSOL_MINT, c, false, TOKEN_PROGRAM_ID),
+    );
+
+    const createAtaTx = new anchor.web3.Transaction().add(
+      ...claimers.flatMap((claimer, i) => [
+        createAssociatedTokenAccountIdempotentInstruction(
+          payer.publicKey,
+          baseATAs[i],
+          claimer,
+          baseMint.publicKey,
+          TOKEN_2022_PROGRAM_ID,
+        ),
+        createAssociatedTokenAccountIdempotentInstruction(
+          payer.publicKey,
+          quoteATAs[i],
+          claimer,
+          WSOL_MINT,
+          TOKEN_PROGRAM_ID,
+        ),
+      ]),
+    );
+    await sendAndConfirmTransaction(provider.connection, createAtaTx, [payer]);
+
+    // ── Step 6: Claim partner trading fees (user1 is permissionless payer) ──
+    await program.methods
+      .claimPartnerTradingFee(
+        new anchor.BN("18446744073709551615"), // u64::MAX
+        new anchor.BN("18446744073709551615"), // u64::MAX
+      )
+      .accounts({
+        poolAuthority: dbcPoolAuthority,
+        config: config.publicKey,
+        pool: poolAddress,
+        poolClaimers: dbcPoolClaimersPda,
+        baseFeeVault,
+        quoteFeeVault,
+        basePoolVault: dbcPoolState.baseVault,
+        quotePoolVault: dbcPoolState.quoteVault,
+        baseMint: baseMint.publicKey,
+        quoteMint: WSOL_MINT,
+        feeClaimer: feeClaimerPda,
+        tokenBaseProgram: TOKEN_2022_PROGRAM_ID,
+        tokenQuoteProgram: TOKEN_PROGRAM_ID,
+        eventAuthority: dbcEventAuthority,
+        dbcProgram: DBC_PROGRAM_ID,
+        payer: user1.publicKey,
+        systemProgram: SystemProgram.programId,
+      } as any)
+      .signers([user1])
+      .rpc();
+
+    const quoteVaultRound1 = await provider.connection.getTokenAccountBalance(
+      quoteFeeVault,
+    );
+    const quoteAmount1 = Number(quoteVaultRound1.value.amount);
+    console.log(
+      "Round 1 vault balance (SOL):",
+      quoteAmount1 / LAMPORTS_PER_SOL,
+    );
+
+    // ── Step 7: Distribute round-1 fees ─────────────────────────────────────
+    const remainingAccounts = claimers.flatMap((_, i) => [
+      { pubkey: baseATAs[i], isSigner: false, isWritable: true },
+      { pubkey: quoteATAs[i], isSigner: false, isWritable: true },
+    ]);
+
+    await distribute_fees(
+      program,
+      payer,
+      poolAddress,
+      dbcPoolClaimersPda,
+      baseFeeVault,
+      quoteFeeVault,
+      { tokenAMint: baseMint.publicKey, tokenBMint: WSOL_MINT },
+      feeClaimerPda,
+      TOKEN_2022_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      remainingAccounts,
+    );
+
+    // ── Step 8: Assert proportional payouts — 20% / 30% / 50% ──────────────
+    const pdaRound1 = await fetchclaimerspdainfo(
+      program,
+      dbcPoolClaimersPda,
+      false,
+    );
+
+    const payerExpected1 = Math.floor((quoteAmount1 * 2000) / 10_000);
+    const user2Expected1 = Math.floor((quoteAmount1 * 3000) / 10_000);
+    const user3Expected1 = quoteAmount1 - payerExpected1 - user2Expected1;
+
+    assert.strictEqual(pdaRound1.claimedQuote[0].toNumber(), payerExpected1);
+    assert.strictEqual(pdaRound1.claimedQuote[1].toNumber(), user2Expected1);
+    assert.strictEqual(pdaRound1.claimedQuote[2].toNumber(), user3Expected1);
+    assert.isAbove(pdaRound1.lastDistributed.toNumber(), 0);
+    assert.isAbove(pdaRound1.lastClaimed.toNumber(), 0);
+
+    console.log(
+      `Round 1 distribution (SOL) — admin: ${
+        payerExpected1 / LAMPORTS_PER_SOL
+      }, ` +
+        `user2: ${user2Expected1 / LAMPORTS_PER_SOL}, user3: ${
+          user3Expected1 / LAMPORTS_PER_SOL
+        }`,
+    );
+
+    // ── Step 9: Update BPS to 50% / 50% / 0% ────────────────────────────────
+    await program.methods
+      .updateClaimersBps([5000, 5000, 0])
+      .accounts({
+        deployer: payer.publicKey,
+        pool: poolAddress,
+        poolClaimers: dbcPoolClaimersPda,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    const pdaAfterBpsUpdate = await fetchclaimerspdainfo(
+      program,
+      dbcPoolClaimersPda,
+      false,
+    );
+    assert.deepEqual(pdaAfterBpsUpdate.claimerBps, [5000, 5000, 0]);
+    // claimedQuote history is preserved (not reset by updateClaimersBps)
+    assert.strictEqual(
+      pdaAfterBpsUpdate.claimedQuote[0].toNumber(),
+      payerExpected1,
+    );
+    assert.strictEqual(
+      pdaAfterBpsUpdate.claimedQuote[1].toNumber(),
+      user2Expected1,
+    );
+    assert.strictEqual(
+      pdaAfterBpsUpdate.claimedQuote[2].toNumber(),
+      user3Expected1,
+    );
+
+    // ── Step 10: Round-2 swap to generate new DBC fees ───────────────────────
+    await swap(user1, poolAddress, 5, false);
+
+    // ── Step 11: Claim fees (user1 again) ───────────────────────────────────
+    await program.methods
+      .claimPartnerTradingFee(
+        new anchor.BN("18446744073709551615"),
+        new anchor.BN("18446744073709551615"),
+      )
+      .accounts({
+        poolAuthority: dbcPoolAuthority,
+        config: config.publicKey,
+        pool: poolAddress,
+        poolClaimers: dbcPoolClaimersPda,
+        baseFeeVault,
+        quoteFeeVault,
+        basePoolVault: dbcPoolState.baseVault,
+        quotePoolVault: dbcPoolState.quoteVault,
+        baseMint: baseMint.publicKey,
+        quoteMint: WSOL_MINT,
+        feeClaimer: feeClaimerPda,
+        tokenBaseProgram: TOKEN_2022_PROGRAM_ID,
+        tokenQuoteProgram: TOKEN_PROGRAM_ID,
+        eventAuthority: dbcEventAuthority,
+        dbcProgram: DBC_PROGRAM_ID,
+        payer: user1.publicKey,
+        systemProgram: SystemProgram.programId,
+      } as any)
+      .signers([user1])
+      .rpc();
+
+    const quoteVaultRound2 = await provider.connection.getTokenAccountBalance(
+      quoteFeeVault,
+    );
+    const quoteAmount2 = Number(quoteVaultRound2.value.amount);
+    console.log(
+      "Round 2 vault balance (SOL):",
+      quoteAmount2 / LAMPORTS_PER_SOL,
+    );
+
+    // ── Step 12: Distribute round-2 fees ────────────────────────────────────
+    await distribute_fees(
+      program,
+      payer,
+      poolAddress,
+      dbcPoolClaimersPda,
+      baseFeeVault,
+      quoteFeeVault,
+      { tokenAMint: baseMint.publicKey, tokenBMint: WSOL_MINT },
+      feeClaimerPda,
+      TOKEN_2022_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      remainingAccounts,
+    );
+
+    // ── Step 13: Assert delta on claimedQuote reflects 50% / 50% / 0% ───────
+    const pdaRound2 = await fetchclaimerspdainfo(
+      program,
+      dbcPoolClaimersPda,
+      false,
+    );
+
+    const payerDelta = pdaRound2.claimedQuote[0].toNumber() - payerExpected1;
+    const user2Delta = pdaRound2.claimedQuote[1].toNumber() - user2Expected1;
+    const user3Delta = pdaRound2.claimedQuote[2].toNumber() - user3Expected1;
+
+    const payerExpected2 = Math.floor((quoteAmount2 * 5000) / 10_000);
+    const user2Expected2 = Math.floor((quoteAmount2 * 5000) / 10_000);
+    const user3Expected2 = quoteAmount2 - payerExpected2 - user2Expected2;
+
+    assert.strictEqual(payerDelta, payerExpected2);
+    assert.strictEqual(user2Delta, user2Expected2);
+    assert.strictEqual(user3Delta, user3Expected2);
+
+    console.log(
+      `Round 2 delta (SOL) — admin: ${payerDelta / LAMPORTS_PER_SOL}, ` +
+        `user2: ${user2Delta / LAMPORTS_PER_SOL}, user3: ${
+          user3Delta / LAMPORTS_PER_SOL
+        }`,
+    );
   });
 });

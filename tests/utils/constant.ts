@@ -2,17 +2,17 @@ import { PublicKey } from "@solana/web3.js";
 import { DBC_PROGRAM_ID } from "./helpers";
 
 export function deriveCpAmmFeeVaults(
-  cpAmmPool: PublicKey,
+  pool: PublicKey, //  Pool can be DBC or DAMMv2
   tokenAMint: PublicKey,
   tokenBMint: PublicKey,
   programId: PublicKey,
 ): { baseFeeVault: PublicKey; quoteFeeVault: PublicKey } {
   const [baseFeeVault] = PublicKey.findProgramAddressSync(
-    [Buffer.from("fee_vault"), cpAmmPool.toBuffer(), tokenAMint.toBuffer()],
+    [Buffer.from("fee_vault"), pool.toBuffer(), tokenAMint.toBuffer()],
     programId,
   );
   const [quoteFeeVault] = PublicKey.findProgramAddressSync(
-    [Buffer.from("fee_vault"), cpAmmPool.toBuffer(), tokenBMint.toBuffer()],
+    [Buffer.from("fee_vault"), pool.toBuffer(), tokenBMint.toBuffer()],
     programId,
   );
   return { baseFeeVault, quoteFeeVault };
