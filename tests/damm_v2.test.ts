@@ -741,5 +741,463 @@ describe("dbc-swap:damm-v2", () => {
       quoteAmount,
       "PDA claimedQuote must equal the exact fee vault amount",
     );
+
+    // --- Part 2: Remove 10% of unlocked liquidity ---
+
+    const cpAmmEventAuthority = deriveCpAmmEventAuthority(CP_AMM_PROGRAM_ID);
+    const positionNftAccount = derivePositionNftAccount(firstPositionNftMint);
+    const cpAmmPoolAuthority = derivePoolAuthority();
+
+    // Compute 10% of unlocked liquidity as the removal delta
+    const { unlocked: unlockedBefore } = await getPositionInfo(
+      firstPositionNftMint,
+    );
+    const liquidityToRemove = unlockedBefore.divn(10);
+
+    // Snapshot vault and admin balances before removal
+    const vaultABalBefore = Number(
+      (await provider.connection.getTokenAccountBalance(poolState.tokenAVault))
+        .value.amount,
+    );
+    const vaultBBalBefore = Number(
+      (await provider.connection.getTokenAccountBalance(poolState.tokenBVault))
+        .value.amount,
+    );
+    const baseBalanceBefore = Number(
+      (await provider.connection.getTokenAccountBalance(payerBaseAta)).value
+        .amount,
+    );
+    const quoteBalanceBefore = Number(
+      (await provider.connection.getTokenAccountBalance(payerQuoteAta)).value
+        .amount,
+    );
+
+    await program.methods
+      .removeLiquidity({
+        liquidityDelta: liquidityToRemove,
+        tokenAAmountThreshold: new anchor.BN(0),
+        tokenBAmountThreshold: new anchor.BN(0),
+      })
+      .accounts({
+        admin: payer.publicKey,
+        poolAuthority: cpAmmPoolAuthority,
+        pool: dammV2Pool,
+        position,
+        tokenAAccount: payerBaseAta,
+        tokenBAccount: payerQuoteAta,
+        tokenAVault: poolState.tokenAVault,
+        tokenBVault: poolState.tokenBVault,
+        tokenAMint: poolState.tokenAMint,
+        tokenBMint: poolState.tokenBMint,
+        positionNftAccount,
+        feeClaimer: feeClaimerPda,
+        tokenAProgram: baseTokenProgram,
+        tokenBProgram: quoteTokenProgram,
+        eventAuthority: cpAmmEventAuthority,
+        cpAmmProgram: CP_AMM_PROGRAM_ID,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    // Admin received exactly the tokens that left the vault — no lamport lost
+    const baseBalanceAfterPartial = Number(
+      (await provider.connection.getTokenAccountBalance(payerBaseAta)).value
+        .amount,
+    );
+    const quoteBalanceAfterPartial = Number(
+      (await provider.connection.getTokenAccountBalance(payerQuoteAta)).value
+        .amount,
+    );
+    const vaultABalAfterPartial = Number(
+      (await provider.connection.getTokenAccountBalance(poolState.tokenAVault))
+        .value.amount,
+    );
+    const vaultBBalAfterPartial = Number(
+      (await provider.connection.getTokenAccountBalance(poolState.tokenBVault))
+        .value.amount,
+    );
+    const adminReceivedA = baseBalanceAfterPartial - baseBalanceBefore;
+    const adminReceivedB = quoteBalanceAfterPartial - quoteBalanceBefore;
+    assert.isAbove(
+      adminReceivedA,
+      0,
+      "admin must receive token A from partial removal",
+    );
+    assert.isAbove(
+      adminReceivedB,
+      0,
+      "admin must receive token B from partial removal",
+    );
+    const vaultADecrease = vaultABalBefore - vaultABalAfterPartial;
+    const vaultBDecrease = vaultBBalBefore - vaultBBalAfterPartial;
+    // Allow up to 64 lamports for protocol rounding/fees on removal
+    assert.isAtMost(
+      vaultADecrease - adminReceivedA,
+      64,
+      `token A received (${adminReceivedA}) must be within 64 lamports of vault A decrease (${vaultADecrease})`,
+    );
+    assert.isAtMost(
+      vaultBDecrease - adminReceivedB,
+      64,
+      `token B received (${adminReceivedB}) must be within 64 lamports of vault B decrease (${vaultBDecrease})`,
+    );
+
+    // Carry forward for Part 3 comparison
+    const baseBalanceBeforeFull = baseBalanceAfterPartial;
+    const quoteBalanceBeforeFull = quoteBalanceAfterPartial;
+
+    assert.isAbove(
+      quoteBalanceAfterPartial,
+      quoteBalanceBefore,
+      "admin token B balance must increase after partial removal",
+    );
+
+    // --- Part 3: Remove all remaining liquidity + NFT burned ---
+
+    const nftCountBefore = (await fetchAllWalletNfts(feeClaimerPda.toBase58()))
+      .length;
+
+    await program.methods
+      .removeAllLiquidity(new anchor.BN(0), new anchor.BN(0))
+      .accounts({
+        admin: payer.publicKey,
+        poolAuthority: cpAmmPoolAuthority,
+        pool: dammV2Pool,
+        position,
+        tokenAAccount: payerBaseAta,
+        tokenBAccount: payerQuoteAta,
+        tokenAVault: poolState.tokenAVault,
+        tokenBVault: poolState.tokenBVault,
+        tokenAMint: poolState.tokenAMint,
+        tokenBMint: poolState.tokenBMint,
+        positionNftAccount,
+        feeClaimer: feeClaimerPda,
+        tokenAProgram: baseTokenProgram,
+        tokenBProgram: quoteTokenProgram,
+        eventAuthority: cpAmmEventAuthority,
+        cpAmmProgram: CP_AMM_PROGRAM_ID,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    const baseBalanceAfterFull = Number(
+      (await provider.connection.getTokenAccountBalance(payerBaseAta)).value
+        .amount,
+    );
+    const quoteBalanceAfterFull = Number(
+      (await provider.connection.getTokenAccountBalance(payerQuoteAta)).value
+        .amount,
+    );
+    assert.isAbove(
+      baseBalanceAfterFull,
+      baseBalanceBeforeFull,
+      "admin token A balance must increase after full removal",
+    );
+    assert.isAbove(
+      quoteBalanceAfterFull,
+      quoteBalanceBeforeFull,
+      "admin token B balance must increase after full removal",
+    );
+
+    // Position has permanently locked liquidity (10%), so the NFT is NOT burned —
+    // it remains as custody for the locked portion. Count must stay the same.
+    const nftCountAfter = (await fetchAllWalletNfts(feeClaimerPda.toBase58()))
+      .length;
+    assert.strictEqual(
+      nftCountAfter,
+      nftCountBefore,
+      "fee claimer PDA NFT count must stay the same after removeAllLiquidity (position has permanently locked liquidity)",
+    );
+  });
+
+  it("test5: access control — only admin can initialize claimers, update bps, and remove liquidity", async () => {
+    const payer = (provider.wallet as any).payer;
+
+    // Pool: partner 10% permanently locked, 90% unlocked; creator 0%
+    const { firstPositionNftMint } = await setupPoolAndMigrate(
+      payer,
+      feeClaimerPda,
+      10,
+      90,
+      0,
+      0,
+    );
+
+    const cpAmm = new CpAmm(connection);
+    const position = derivePositionAddress(firstPositionNftMint);
+    const positionState = await cpAmm.fetchPositionState(position);
+    const dammV2Pool = positionState.pool;
+    const poolState = await cpAmm.fetchPoolState(dammV2Pool);
+
+    const cpAmmPoolClaimersPda = derivePoolClaimersPda(
+      dammV2Pool,
+      program.programId,
+    );
+
+    const nonAdmin = await createRandomKeyPair(2);
+
+    // Step 1: Admin initializes poolClaimers PDA
+    await program.methods
+      .setPoolClaimers([payer.publicKey], [10_000], { dammV2: {} })
+      .accounts({
+        deployer: payer.publicKey,
+        pool: dammV2Pool,
+        poolClaimers: cpAmmPoolClaimersPda,
+        systemProgram: SystemProgram.programId,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    const pdaInfo = await fetchclaimerspdainfo(
+      program,
+      cpAmmPoolClaimersPda,
+      false,
+    );
+    assert.deepEqual(pdaInfo.claimerBps, [10_000]);
+
+    // Step 2: Non-admin tries to call setPoolClaimers — must fail
+    let threw = false;
+    try {
+      await program.methods
+        .setPoolClaimers([nonAdmin.publicKey], [10_000], { dammV2: {} })
+        .accounts({
+          deployer: nonAdmin.publicKey,
+          pool: dammV2Pool,
+          poolClaimers: cpAmmPoolClaimersPda,
+          systemProgram: SystemProgram.programId,
+        } as any)
+        .signers([nonAdmin])
+        .rpc();
+    } catch {
+      threw = true;
+    }
+    assert.isTrue(threw, "non-admin must not be able to call setPoolClaimers");
+
+    // Step 3: Admin updates BPS
+    await program.methods
+      .updateClaimersBps([10_000])
+      .accounts({
+        deployer: payer.publicKey,
+        pool: dammV2Pool,
+        poolClaimers: cpAmmPoolClaimersPda,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    const pdaInfoAfterBps = await fetchclaimerspdainfo(
+      program,
+      cpAmmPoolClaimersPda,
+      false,
+    );
+    assert.deepEqual(pdaInfoAfterBps.claimerBps, [10_000]);
+
+    // Step 4: Non-admin tries to call updateClaimersBps — must fail
+    threw = false;
+    try {
+      await program.methods
+        .updateClaimersBps([10_000])
+        .accounts({
+          deployer: nonAdmin.publicKey,
+          pool: dammV2Pool,
+          poolClaimers: cpAmmPoolClaimersPda,
+        } as any)
+        .signers([nonAdmin])
+        .rpc();
+    } catch {
+      threw = true;
+    }
+    assert.isTrue(threw, "non-admin must not be able to call updateClaimersBps");
+
+    // Prepare ATAs for admin and non-admin
+    const baseTokenProgram = getTokenProgram(poolState.tokenAFlag);
+    const quoteTokenProgram = getTokenProgram(poolState.tokenBFlag);
+
+    const payerBaseAta = getAssociatedTokenAddressSync(
+      poolState.tokenAMint,
+      payer.publicKey,
+      false,
+      baseTokenProgram,
+    );
+    const payerQuoteAta = getAssociatedTokenAddressSync(
+      poolState.tokenBMint,
+      payer.publicKey,
+      false,
+      quoteTokenProgram,
+    );
+    const nonAdminBaseAta = getAssociatedTokenAddressSync(
+      poolState.tokenAMint,
+      nonAdmin.publicKey,
+      false,
+      baseTokenProgram,
+    );
+    const nonAdminQuoteAta = getAssociatedTokenAddressSync(
+      poolState.tokenBMint,
+      nonAdmin.publicKey,
+      false,
+      quoteTokenProgram,
+    );
+
+    const createAtaTx = new anchor.web3.Transaction().add(
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        payerBaseAta,
+        payer.publicKey,
+        poolState.tokenAMint,
+        baseTokenProgram,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        payerQuoteAta,
+        payer.publicKey,
+        poolState.tokenBMint,
+        quoteTokenProgram,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        nonAdminBaseAta,
+        nonAdmin.publicKey,
+        poolState.tokenAMint,
+        baseTokenProgram,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        nonAdminQuoteAta,
+        nonAdmin.publicKey,
+        poolState.tokenBMint,
+        quoteTokenProgram,
+      ),
+    );
+    await sendAndConfirmTransaction(provider.connection, createAtaTx, [payer]);
+
+    const cpAmmEventAuthority = deriveCpAmmEventAuthority(CP_AMM_PROGRAM_ID);
+    const positionNftAccount = derivePositionNftAccount(firstPositionNftMint);
+    const cpAmmPoolAuthority = derivePoolAuthority();
+
+    const { unlocked: unlockedBefore } = await getPositionInfo(
+      firstPositionNftMint,
+    );
+    const liquidityToRemove = unlockedBefore.divn(10);
+
+    // Step 5: Admin removes partial liquidity
+    await program.methods
+      .removeLiquidity({
+        liquidityDelta: liquidityToRemove,
+        tokenAAmountThreshold: new anchor.BN(0),
+        tokenBAmountThreshold: new anchor.BN(0),
+      })
+      .accounts({
+        admin: payer.publicKey,
+        poolAuthority: cpAmmPoolAuthority,
+        pool: dammV2Pool,
+        position,
+        tokenAAccount: payerBaseAta,
+        tokenBAccount: payerQuoteAta,
+        tokenAVault: poolState.tokenAVault,
+        tokenBVault: poolState.tokenBVault,
+        tokenAMint: poolState.tokenAMint,
+        tokenBMint: poolState.tokenBMint,
+        positionNftAccount,
+        feeClaimer: feeClaimerPda,
+        tokenAProgram: baseTokenProgram,
+        tokenBProgram: quoteTokenProgram,
+        eventAuthority: cpAmmEventAuthority,
+        cpAmmProgram: CP_AMM_PROGRAM_ID,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    // Step 6: Non-admin tries to remove partial liquidity — must fail
+    threw = false;
+    try {
+      await program.methods
+        .removeLiquidity({
+          liquidityDelta: liquidityToRemove,
+          tokenAAmountThreshold: new anchor.BN(0),
+          tokenBAmountThreshold: new anchor.BN(0),
+        })
+        .accounts({
+          admin: nonAdmin.publicKey,
+          poolAuthority: cpAmmPoolAuthority,
+          pool: dammV2Pool,
+          position,
+          tokenAAccount: nonAdminBaseAta,
+          tokenBAccount: nonAdminQuoteAta,
+          tokenAVault: poolState.tokenAVault,
+          tokenBVault: poolState.tokenBVault,
+          tokenAMint: poolState.tokenAMint,
+          tokenBMint: poolState.tokenBMint,
+          positionNftAccount,
+          feeClaimer: feeClaimerPda,
+          tokenAProgram: baseTokenProgram,
+          tokenBProgram: quoteTokenProgram,
+          eventAuthority: cpAmmEventAuthority,
+          cpAmmProgram: CP_AMM_PROGRAM_ID,
+        } as any)
+        .signers([nonAdmin])
+        .rpc();
+    } catch {
+      threw = true;
+    }
+    assert.isTrue(
+      threw,
+      "non-admin must not be able to call removeLiquidity",
+    );
+
+    // Step 7: Non-admin tries to remove all liquidity — must fail
+    threw = false;
+    try {
+      await program.methods
+        .removeAllLiquidity(new anchor.BN(0), new anchor.BN(0))
+        .accounts({
+          admin: nonAdmin.publicKey,
+          poolAuthority: cpAmmPoolAuthority,
+          pool: dammV2Pool,
+          position,
+          tokenAAccount: nonAdminBaseAta,
+          tokenBAccount: nonAdminQuoteAta,
+          tokenAVault: poolState.tokenAVault,
+          tokenBVault: poolState.tokenBVault,
+          tokenAMint: poolState.tokenAMint,
+          tokenBMint: poolState.tokenBMint,
+          positionNftAccount,
+          feeClaimer: feeClaimerPda,
+          tokenAProgram: baseTokenProgram,
+          tokenBProgram: quoteTokenProgram,
+          eventAuthority: cpAmmEventAuthority,
+          cpAmmProgram: CP_AMM_PROGRAM_ID,
+        } as any)
+        .signers([nonAdmin])
+        .rpc();
+    } catch {
+      threw = true;
+    }
+    assert.isTrue(
+      threw,
+      "non-admin must not be able to call removeAllLiquidity",
+    );
+
+    // Step 8: Admin removes all remaining liquidity
+    await program.methods
+      .removeAllLiquidity(new anchor.BN(0), new anchor.BN(0))
+      .accounts({
+        admin: payer.publicKey,
+        poolAuthority: cpAmmPoolAuthority,
+        pool: dammV2Pool,
+        position,
+        tokenAAccount: payerBaseAta,
+        tokenBAccount: payerQuoteAta,
+        tokenAVault: poolState.tokenAVault,
+        tokenBVault: poolState.tokenBVault,
+        tokenAMint: poolState.tokenAMint,
+        tokenBMint: poolState.tokenBMint,
+        positionNftAccount,
+        feeClaimer: feeClaimerPda,
+        tokenAProgram: baseTokenProgram,
+        tokenBProgram: quoteTokenProgram,
+        eventAuthority: cpAmmEventAuthority,
+        cpAmmProgram: CP_AMM_PROGRAM_ID,
+      } as any)
+      .signers([payer])
+      .rpc();
   });
 });

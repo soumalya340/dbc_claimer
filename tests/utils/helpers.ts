@@ -60,6 +60,7 @@ export async function fetchclaimerspdainfo(
 
   return poolClaimersAccount;
 }
+
 export async function distribute_fees(
   program: any,
   payer: Keypair,

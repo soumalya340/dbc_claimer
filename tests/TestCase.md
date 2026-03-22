@@ -132,3 +132,67 @@
 9. Call `distributeFees` — pushes the entire vault balance to the sole 100% claimer.
 10. Read the admin payer's quote ATA balance. **Assert (strict):** the payer received exactly the full vault amount — not even 1 lamport less.
 11. Fetch the final PDA state via `fetchclaimerspdainfo`. **Assert:** `claimedQuote[0]` equals the exact fee vault amount.
+
+---
+
+### Part 2 — Partial Liquidity Removal (10% of Unlocked)
+
+12. Read the current position info via `getPositionInfo` — capture the full `unlocked` liquidity amount.
+13. Calculate exactly 10% of that unlocked liquidity amount.
+14. Call `remove_liquidity` as admin, passing the 10% amount as the liquidity parameter. The admin's token A and token B destination accounts receive the withdrawn tokens.
+15. Read the admin's token A and token B balances after removal.
+16. **Assert (strict):** The admin received exactly 10% of the total unlocked liquidity — not even 1 lamport less or more.
+
+---
+
+### Part 3 — Remove All Remaining Liquidity + NFT Burn
+
+17. Call `remove_all_liquidity` as admin with both token thresholds set to `0` (accept any amount). This drains the remaining 90% of unlocked liquidity from the position.
+18. **Assert (strict):** The admin's token A and token B balances increased by exactly the remaining liquidity — all of it, nothing left behind.
+19. **Assert:** The position NFT is no longer held by the fee claimer PDA — the NFT has been burned and the position account closed.
+20. **Assert:** The fee claimer PDA's NFT balance decreased (the position NFT is gone).
+
+## Test 5: Access Control — Only Admin Can Initialize Claimers, Update BPS, and Remove Liquidity
+
+**Goal:** Verify that all privileged instructions (`setPoolClaimers`, `updateClaimersBps`, `removeLiquidity`, `removeAllLiquidity`) reject any caller that is not the designated admin address, while the admin can execute all of them successfully.
+
+**Constraints:** Single non-admin random keypair used for all rejection checks. No `console.log` statements.
+
+**Flow:**
+
+1. Set up the pool using `setupPoolAndMigrate` with the following liquidity split:
+   - **Partner:** 10% permanently locked, 90% unlocked.
+   - **Creator:** 0% permanently locked, 0% unlocked.
+2. Derive the pool address, fetch on-chain pool state, and derive the pool claimers PDA.
+3. Create a `nonAdmin` random keypair (funded with 2 SOL).
+
+---
+
+### Claimer Initialization
+
+4. **Admin** calls `setPoolClaimers` registering themselves as the sole 100% claimer.
+5. **Assert:** The PDA is initialized with `claimerBps = [10000]`.
+6. **Non-admin** calls `setPoolClaimers` — **must fail** (`Unauthorized` address constraint on `deployer`).
+7. **Assert:** The transaction threw an error.
+
+---
+
+### BPS Update
+
+8. **Admin** calls `updateClaimersBps` with `[10000]` (no change in split).
+9. **Assert:** The PDA still reflects `claimerBps = [10000]`.
+10. **Non-admin** calls `updateClaimersBps` — **must fail** (`Unauthorized` address constraint on `deployer`).
+11. **Assert:** The transaction threw an error.
+
+---
+
+### Liquidity Removal
+
+12. Create ATAs for both admin and non-admin (base + quote tokens) via idempotent ATA instructions, funded by admin.
+13. Read the current `unlocked` liquidity from the position and compute 10% of it as `liquidityToRemove`.
+14. **Admin** calls `removeLiquidity` with `liquidityToRemove` — **must succeed**.
+15. **Non-admin** calls `removeLiquidity` using their own ATAs — **must fail** (`Unauthorized` address constraint on `admin`).
+16. **Assert:** The transaction threw an error.
+17. **Non-admin** calls `removeAllLiquidity` — **must fail** (`Unauthorized` address constraint on `admin`).
+18. **Assert:** The transaction threw an error.
+19. **Admin** calls `removeAllLiquidity` with both token thresholds set to `0` — **must succeed**. The unlocked liquidity is fully drained. The position NFT is not burned because 10% permanently locked liquidity remains.
