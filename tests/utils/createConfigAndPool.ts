@@ -37,6 +37,7 @@ export async function setupConfigAndPool(
   name: string = "Test",
   symbol: string = "TEST",
   uri: string = "",
+  toPrintTransaction: boolean = false,
 ): Promise<{ poolAddress: PublicKey }> {
   // Starting fee of the pre-migration DBC pool — used as the starting point for the DAMMv2 fee scheduler
   const preMigrationEndingFeeBps = 500; // 5% — becomes the starting fee in DAMMv2 after migration
@@ -183,8 +184,7 @@ export async function setupConfigAndPool(
       maxRetries: 3,
     },
   );
-
-  console.log("✅ Config created! Tx:", signature);
+  if (toPrintTransaction) console.log("✅ Config created! Tx:", signature);
 
   const poolTx = await client.pool.createPool({
     config: config.publicKey,
@@ -222,14 +222,7 @@ export async function setupConfigAndPool(
 
   const poolAddress = pools[0].publicKey;
 
-  console.log("✅ Pool created! Tx:", poolSignature);
-
-  // const threshold = await client.state.getPoolMigrationQuoteThreshold(
-  //   poolAddress,
-  // );
-  // console.log(
-  //   `The migration threshold is ${Number(threshold) / LAMPORTS_PER_SOL} SOL`,
-  // );
+  if (toPrintTransaction) console.log("✅ Pool created! Tx:", poolSignature);
 
   return { poolAddress };
 }

@@ -1,237 +1,45 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import {
-  Keypair,
-  PublicKey,
-  SystemProgram,
-  ComputeBudgetProgram,
-  sendAndConfirmTransaction,
-} from "@solana/web3.js";
-import {
-  getAssociatedTokenAddressSync,
-  createAssociatedTokenAccountInstruction,
-  createSyncNativeInstruction,
-  TOKEN_PROGRAM_ID,
-  TOKEN_2022_PROGRAM_ID,
-} from "@solana/spl-token";
-import {
-  CpAmm,
-  CP_AMM_PROGRAM_ID,
-  derivePoolAuthority,
-  deriveCustomizablePoolAddress,
-  derivePositionAddress,
-  derivePositionNftAccount,
-  getTokenProgram,
-  getUnClaimLpFee,
-} from "@meteora-ag/cp-amm-sdk";
-import BN from "bn.js";
+import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { CpAmm, derivePositionAddress } from "@meteora-ag/cp-amm-sdk";
 
 import {
   deriveFeeClaimerPda,
-  deriveAllPdas,
   derivePoolClaimersPda,
   deriveCpAmmFeeVaults,
-  deriveCpAmmEventAuthority,
 } from "./utils/constant";
-
 import { DbcSwap } from "../target/types/dbc_swap";
-import { setupConfigAndPool } from "./utils/createConfigAndPool";
 import { fetchAllWalletNfts } from "./utils/nft_balance";
-import { swap } from "./utils/swap";
-import { dammV2Swap } from "./utils/damm_v2_swap";
-
 import { assert } from "chai";
-import { client, connection, DBC_PROGRAM_ID } from "./utils/helpers";
-import { WSOL_MINT } from "./utils/wsol";
+import { connection, CP_AMM_PROGRAM_ID } from "./utils/helpers";
+
+import {
+  createRandomKeyPair,
+  setupPoolAndMigrate,
+  getPositionInfo,
+  claimPositionFeeModule,
+} from "./test_helpers/dammv2";
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 const program = anchor.workspace.dbcSwap as Program<DbcSwap>;
 
 describe("dbc-swap:damm-v2", () => {
-  const user = provider.wallet;
-
   const feeClaimerPda = deriveFeeClaimerPda(program.programId);
 
   before(async () => {
-    const cpAmmProgramId = new PublicKey(
-      "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
-    );
-
-    const cpAmmAccount = await connection.getAccountInfo(cpAmmProgramId);
-    if (!cpAmmAccount) {
+    const cpAmmAccount = await connection.getAccountInfo(CP_AMM_PROGRAM_ID);
+    if (!cpAmmAccount)
       throw new Error(
         "CP-AMM program not loaded on localnet — run `yarn start` first",
       );
-    } else {
-      console.log("CPMM program does exists ");
-    }
   });
 
-  async function createRandomKeyPair(amount: number): Promise<Keypair> {
-    const randomKeypair = Keypair.generate();
-    const airdropSig = await connection.requestAirdrop(
-      randomKeypair.publicKey,
-      amount * anchor.web3.LAMPORTS_PER_SOL,
-    );
-    await connection.confirmTransaction(airdropSig, "confirmed");
-
-    return randomKeypair;
-  }
-  async function setupPoolAndMigrate(payer: Keypair) {
-    const config = Keypair.generate();
-    console.log("Config:", config.publicKey.toBase58());
-
-    const baseMint = Keypair.generate();
-
-    const { poolAddress } = await setupConfigAndPool(
-      payer,
-      config,
-      feeClaimerPda,
-      101,
-      baseMint,
-    );
-
-    // Need enough SOL to fill quote_reserve past 101 SOL threshold after fees (4% trading fee)
-    // 101 / 0.96 ≈ 105.2 SOL minimum, using 110 to be safe
-    await swap(payer, poolAddress, 110, false);
-
-    // Verify pool state after swap
-    const poolState = await client.state.getPool(poolAddress);
-    // console.log("Migration progress after swap:", poolState.migrationProgress);
-    // 0 = PreBondingCurve, 1 = PostBondingCurve, 2 = LockedVesting, 3 = CreatedPool
-
-    // This config has poolCreatorAuthority = DBC pool authority PDA (FhVo3mqL8PW5pH5U2CN4XE33DokiyZnUwuGpH2hmHLuM)
-    // Cloned from mainnet via `yarn start`. Required for DBC migration validation.
-    // Dynamic config (configType=1) with DBC pool authority. Required for Customizable migration
-    // which uses InitializePoolWithDynamicConfig CPI.
-    const dammConfig = new PublicKey(
-      "A8gMrEPJkacWkcb3DGwtJwTe16HktSEfvwtuDh2MCtck",
-    );
-
-    const [poolAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from("pool_authority")],
-      DBC_PROGRAM_ID,
-    );
-    const fundTx = new anchor.web3.Transaction().add(
-      SystemProgram.transfer({
-        fromPubkey: payer.publicKey,
-        toPubkey: poolAuthority,
-        lamports: anchor.web3.LAMPORTS_PER_SOL, // 1 SOL for flash rent
-      }),
-    );
-    await sendAndConfirmTransaction(connection, fundTx, [payer]);
-    // console.log("Funded pool authority PDA with 1 SOL for flash rent");
-
-    const tx = await client.migration.migrateToDammV2({
-      payer: payer.publicKey,
-      virtualPool: poolAddress,
-      dammConfig,
-    });
-
-    const sig = await sendAndConfirmTransaction(connection, tx.transaction, [
-      payer,
-      tx.firstPositionNftKeypair,
-      tx.secondPositionNftKeypair,
-    ]);
-
-    // console.log("Migrate to DAMM V2 tx:", sig);
-
-    return {
-      config,
-      baseMint,
-      poolAddress,
-      firstPositionNftMint: tx.firstPositionNftKeypair.publicKey,
-      secondPositionNftMint: tx.secondPositionNftKeypair.publicKey,
-    };
-  }
-  async function getPositionInfo(positionNftMint: PublicKey): Promise<{
-    unlocked: BN;
-    permLocked: BN;
-    feeTokenA: BN;
-    feeTokenB: BN;
-  }> {
-    const cpAmm = new CpAmm(connection);
-    const position = derivePositionAddress(positionNftMint);
-    const s = await cpAmm.fetchPositionState(position);
-    const poolState = await cpAmm.fetchPoolState(s.pool);
-
-    const unlocked = s.unlockedLiquidity as unknown as BN;
-    const permLocked = s.permanentLockedLiquidity as unknown as BN;
-
-    const { feeTokenA, feeTokenB } = getUnClaimLpFee(poolState, s);
-
-    return { unlocked, permLocked, feeTokenA, feeTokenB };
-  }
-
-  async function claimPositionFeeModule(
-    payer: Keypair,
-    dammV2Pool: PublicKey,
-    poolState: any,
-    amount: number,
-    position: PublicKey,
-    positionNftMint: PublicKey,
-    poolClaimersPda: PublicKey,
-    toPrintPostionDetails: boolean = true,
-  ): Promise<{ signature: string; success: boolean }> {
-    const cpAmmPoolAuthority = derivePoolAuthority();
-    // position NFT is held in a token account owned by feeClaimerPda
-    const positionNftAccount = derivePositionNftAccount(positionNftMint);
-
-    await dammV2Swap(payer, dammV2Pool, poolState, amount, false);
-
-    if (toPrintPostionDetails) {
-      const { unlocked, permLocked, feeTokenA, feeTokenB } =
-        await getPositionInfo(positionNftMint);
-      console.log("FeeTokenB:", feeTokenB.toString());
-    }
-
-    // fee vaults: [fee_vault, cp_amm_pool, mint] — PDAs owned by our program
-    const { baseFeeVault, quoteFeeVault } = deriveCpAmmFeeVaults(
-      dammV2Pool,
-      poolState.tokenAMint,
-      poolState.tokenBMint,
-      program.programId,
-    );
-
-    const cpAmmEventAuthority = deriveCpAmmEventAuthority(CP_AMM_PROGRAM_ID);
-
-    const sig = await program.methods
-      .claimPositionFee()
-      .accounts({
-        poolAuthority: cpAmmPoolAuthority,
-        pool: dammV2Pool,
-        poolClaimers: poolClaimersPda,
-        position,
-        baseFeeVault,
-        quoteFeeVault,
-        tokenAVault: poolState.tokenAVault,
-        tokenBVault: poolState.tokenBVault,
-        tokenAMint: poolState.tokenAMint,
-        tokenBMint: poolState.tokenBMint,
-        positionNftAccount,
-        tokenAProgram: getTokenProgram(poolState.tokenAFlag),
-        tokenBProgram: getTokenProgram(poolState.tokenBFlag),
-        eventAuthority: cpAmmEventAuthority,
-        cpAmmProgram: CP_AMM_PROGRAM_ID,
-        payer: payer.publicKey,
-        feeClaimer: feeClaimerPda,
-      } as any)
-      .signers([payer])
-      .rpc();
-
-    return { signature: sig, success: true };
-  }
   it("fee claimer should hold DAMMv2 NFT custody", async () => {
-    const user = provider.wallet;
-    const payer = (user as any).payer;
+    const payer = (provider.wallet as any).payer;
 
     const nftBalance = await fetchAllWalletNfts(feeClaimerPda.toBase58());
-    const { config, baseMint, poolAddress } = await setupPoolAndMigrate(payer);
-
-    // console.log("Setup config:", config.publicKey.toBase58());
-    // console.log("Setup base mint:", baseMint.publicKey.toBase58());
-    // console.log("Migrated pool:", poolAddress.toBase58());
+    await setupPoolAndMigrate(payer, feeClaimerPda);
 
     const nftBalanceAfter = await fetchAllWalletNfts(feeClaimerPda.toBase58());
 
@@ -240,12 +48,15 @@ describe("dbc-swap:damm-v2", () => {
       "feeClaimerPda did not receive new DAMMv2 position NFT(s) as custodian",
     );
   });
+
   it("vault-harvest: fee vaults fill with real SOL after a DAMMv2 swap + claim", async () => {
     const payer = (provider.wallet as any).payer;
-    const { secondPositionNftMint } = await setupPoolAndMigrate(payer);
+    const { secondPositionNftMint } = await setupPoolAndMigrate(
+      payer,
+      feeClaimerPda,
+    );
 
-    // ── Locate the real DAMMv2 pool from the migrated position NFT ─────────
-    // secondPositionNftMint is the one whose authority is transferred to fee_claimer
+    // secondPositionNftMint is the position whose authority is transferred to fee_claimer
     const cpAmm = new CpAmm(connection);
     const position = derivePositionAddress(secondPositionNftMint);
     const positionState = await cpAmm.fetchPositionState(position);
@@ -258,11 +69,7 @@ describe("dbc-swap:damm-v2", () => {
     );
 
     await program.methods
-      .setPoolClaimers(
-        [payer.publicKey], // single claimer — 100% share
-        [10_000], // 100% in BPS
-        { dammV2: {} }, // PoolState::DammV2
-      )
+      .setPoolClaimers([payer.publicKey], [10_000], { dammV2: {} })
       .accounts({
         deployer: payer.publicKey,
         pool: dammV2Pool,
@@ -323,6 +130,8 @@ describe("dbc-swap:damm-v2", () => {
       position,
       secondPositionNftMint,
       cpAmmPoolClaimersPda,
+      program,
+      feeClaimerPda,
     );
 
     assert.isTrue(success, "claim_position_fee did not succeed");
