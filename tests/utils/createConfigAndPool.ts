@@ -34,6 +34,7 @@ export async function setupConfigAndPool(
   partnerLiquidityPercentage_args: number = 0,
   creatorPermanentLockedLiquidityPercentage_args: number = 60,
   creatorLiquidityPercentage_args: number = 0,
+  creatorTradingFeeInsideDbc: number = 50,
   name: string = "Test",
   symbol: string = "TEST",
   uri: string = "",
@@ -87,7 +88,7 @@ export async function setupConfigAndPool(
       //   buying base → fee in base token; selling base → fee in quote (SOL).
       collectFeeMode: 0,
       // 50% of the protocol trading fees are routed to the pool creator; 50% to partner
-      creatorTradingFeePercentage: 50,
+      creatorTradingFeePercentage: creatorTradingFeeInsideDbc,
       // No upfront SOL fee required to create a pool under this config
       poolCreationFee: 0,
       // First swap uses the minimum possible fee — reduces sandwich/snipe risk at launch

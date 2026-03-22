@@ -196,3 +196,36 @@
 17. **Non-admin** calls `removeAllLiquidity` — **must fail** (`Unauthorized` address constraint on `admin`).
 18. **Assert:** The transaction threw an error.
 19. **Admin** calls `removeAllLiquidity` with both token thresholds set to `0` — **must succeed**. The unlocked liquidity is fully drained. The position NFT is not burned because 10% permanently locked liquidity remains.
+
+# DBC — Test Suite
+
+---
+
+## Test 1: Admin Receives 100% of DBC Partner Trading Fees
+
+**Goal:** Prove that after a DBC pool is set up (with `feeClaimer` pointing to this program's PDA), the accumulated partner trading fees can be swept into the program's fee vaults and fully distributed to the sole registered admin claimer.
+
+**Constraints:** Only one user and signer throughout — the admin payer. No `console.log` statements.
+
+**Flow:**
+
+1. Set up the pool using `setupPoolAndMigrate` with the following liquidity split:
+   - **Partner:** 10% permanently locked, 90% unlocked.
+   - **Creator:** 0% permanently locked, 0% unlocked.
+   - The 110 SOL swap inside `setupPoolAndMigrate` generates partner trading fees in the DBC pool before migration.
+2. Derive the pool claimers PDA keyed off the DBC pool address.
+3. Register the admin payer as the **sole claimer at 100%** (10,000 BPS) via `setPoolClaimers` with `poolState = { dbc: {} }`.
+4. Fetch PDA state via `fetchclaimerspdainfo` and **assert initial conditions:**
+   - BPS array is `[10000]` — admin holds 100%.
+   - Claimed base and claimed quote are both zero.
+   - `lastDistributed` and `lastClaimed` are both zero.
+5. Derive the DBC pool authority PDA (`["pool_authority"]` off the DBC program).
+6. Derive the DBC event authority PDA (`["__event_authority"]` off the DBC program).
+7. Derive the program's fee vaults (`["fee_vault", dbcPool, baseMint]` and `["fee_vault", dbcPool, WSOL]`).
+8. Fetch on-chain DBC pool state to obtain `baseVault` and `quoteVault` (the DBC pool's token vaults).
+9. Call `claimPartnerTradingFee(u64::MAX, u64::MAX)` — sweeps all accumulated partner fees from the DBC pool into the program's PDA-owned fee vaults (created on first call via `init_if_needed`).
+10. Read the quote fee vault balance. **Assert:** it is greater than zero (real fees landed).
+11. Create Associated Token Accounts (ATAs) for the admin payer (base + quote tokens).
+12. Call `distributeFees` — pushes the entire vault balance to the sole 100% claimer.
+13. Read the admin payer's quote ATA balance. **Assert (strict):** the payer received exactly the full vault amount — not even 1 lamport less.
+14. Fetch the final PDA state via `fetchclaimerspdainfo`. **Assert:** `claimedQuote[0]` equals the exact fee vault amount.

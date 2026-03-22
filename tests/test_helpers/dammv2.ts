@@ -44,6 +44,7 @@ export async function setupPoolAndMigrate(
   partnerLiquidityPercentage_args: number = 0,
   creatorPermanentLockedLiquidityPercentage_args: number = 60,
   creatorLiquidityPercentage_args: number = 0,
+  creatorTradingFeeInsideDbc: number = 50,
 ) {
   const config = Keypair.generate();
 
@@ -59,6 +60,7 @@ export async function setupPoolAndMigrate(
     partnerLiquidityPercentage_args,
     creatorPermanentLockedLiquidityPercentage_args,
     creatorLiquidityPercentage_args,
+    creatorTradingFeeInsideDbc,
   );
 
   // Need enough SOL to fill quote_reserve past 101 SOL threshold after fees (4% trading fee)

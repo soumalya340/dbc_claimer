@@ -1,4 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
+import { DBC_PROGRAM_ID } from "./helpers";
 
 export function deriveCpAmmFeeVaults(
   cpAmmPool: PublicKey,
@@ -45,6 +46,16 @@ export function deriveFeeClaimerPda(programId: PublicKey): PublicKey {
   );
   return feeClaimerPda;
 }
+
+// Step 2: Derive DBC-specific PDAs
+export const [dbcPoolAuthority] = PublicKey.findProgramAddressSync(
+  [Buffer.from("pool_authority")],
+  DBC_PROGRAM_ID,
+);
+export const [dbcEventAuthority] = PublicKey.findProgramAddressSync(
+  [Buffer.from("__event_authority")],
+  DBC_PROGRAM_ID,
+);
 
 export function deriveAllPdas(
   programId: PublicKey,
