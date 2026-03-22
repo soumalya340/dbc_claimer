@@ -73,6 +73,18 @@ describe("dbc-swap:damm-v2", () => {
     }
   });
 
+  async function createRandomKeyPair(
+    amount: number,
+  ): Promise<{ randomKeypair: Keypair }> {
+    const randomKeypair = Keypair.generate();
+    const airdropSig = await connection.requestAirdrop(
+      randomKeypair.publicKey,
+      amount * anchor.web3.LAMPORTS_PER_SOL,
+    );
+    await connection.confirmTransaction(airdropSig, "confirmed");
+
+    return { randomKeypair };
+  }
   async function setupPoolAndMigrate(payer: Keypair) {
     const config = Keypair.generate();
     console.log("Config:", config.publicKey.toBase58());
@@ -139,6 +151,56 @@ describe("dbc-swap:damm-v2", () => {
       firstPositionNftMint: tx.firstPositionNftKeypair.publicKey,
       secondPositionNftMint: tx.secondPositionNftKeypair.publicKey,
     };
+  }
+  async function claimPositionFeeModule(
+    payer: Keypair,
+    dammV2Pool: PublicKey,
+    poolState: any,
+    amount: number,
+    position: PublicKey,
+    poolClaimersPda: PublicKey,
+  ): Promise<{ signature: string; success: boolean }> {
+    const cpAmmPoolAuthority = derivePoolAuthority();
+    // position NFT is held in a token account owned by feeClaimerPda
+    const positionNftAccount = derivePositionNftAccount(position);
+
+    await dammV2Swap(payer, dammV2Pool, poolState, amount, false);
+
+    // fee vaults: [fee_vault, cp_amm_pool, mint] — PDAs owned by our program
+    const { baseFeeVault, quoteFeeVault } = deriveCpAmmFeeVaults(
+      dammV2Pool,
+      poolState.tokenAMint,
+      poolState.tokenBMint,
+      program.programId,
+    );
+
+    const cpAmmEventAuthority = deriveCpAmmEventAuthority(CP_AMM_PROGRAM_ID);
+
+    const sig = await program.methods
+      .claimPositionFee()
+      .accounts({
+        poolAuthority: cpAmmPoolAuthority,
+        pool: dammV2Pool,
+        poolClaimers: poolClaimersPda,
+        position,
+        baseFeeVault,
+        quoteFeeVault,
+        tokenAVault: poolState.tokenAVault,
+        tokenBVault: poolState.tokenBVault,
+        tokenAMint: poolState.tokenAMint,
+        tokenBMint: poolState.tokenBMint,
+        positionNftAccount,
+        tokenAProgram: getTokenProgram(poolState.tokenAFlag),
+        tokenBProgram: getTokenProgram(poolState.tokenBFlag),
+        eventAuthority: cpAmmEventAuthority,
+        cpAmmProgram: CP_AMM_PROGRAM_ID,
+        payer: payer.publicKey,
+        feeClaimer: feeClaimerPda,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    return { signature: sig, success: true };
   }
   it("fee claimer should hold DAMMv2 NFT custody", async () => {
     const user = provider.wallet;
@@ -221,21 +283,8 @@ describe("dbc-swap:damm-v2", () => {
     console.log("pool_claimers initialized for DAMMv2 pool");
 
     // // ── Call claim_position_fee as a random stranger (permissionless) ──────
-    const stranger = Keypair.generate();
-    // Airdrop rent to stranger so it can pay for vault account creation
-    const airdropSig = await connection.requestAirdrop(
-      stranger.publicKey,
-      12 * anchor.web3.LAMPORTS_PER_SOL,
-    );
-    await connection.confirmTransaction(airdropSig, "confirmed");
+    const stranger = createRandomKeyPair(12);
 
-    const cpAmmPoolAuthority = derivePoolAuthority();
-    // position NFT is held in a token account owned by feeClaimerPda
-    const positionNftAccount = derivePositionNftAccount(secondPositionNftMint);
-
-    await dammV2Swap(stranger, dammV2Pool, poolState, 10, false);
-
-    // fee vaults: [fee_vault, cp_amm_pool, mint] — PDAs owned by our program
     const { baseFeeVault, quoteFeeVault } = deriveCpAmmFeeVaults(
       dammV2Pool,
       poolState.tokenAMint,
@@ -243,42 +292,16 @@ describe("dbc-swap:damm-v2", () => {
       program.programId,
     );
 
-    const cpAmmEventAuthority = deriveCpAmmEventAuthority(CP_AMM_PROGRAM_ID);
-
-    console.log(
-      ` \n the token program addresses ${TOKEN_2022_PROGRAM_ID} and ${TOKEN_PROGRAM_ID}`,
+    const { signature, success } = await claimPositionFeeModule(
+      stranger,
+      dammV2Pool,
+      poolState,
+      1,
+      position,
+      cpAmmPoolClaimersPda,
     );
 
-    console.log(
-      `Token A and Token B program id's : ${getTokenProgram(
-        poolState.tokenAFlag,
-      )} and ${getTokenProgram(poolState.tokenBFlag)} \n`,
-    );
-
-    const sig = await program.methods
-      .claimPositionFee()
-      .accounts({
-        poolAuthority: cpAmmPoolAuthority,
-        pool: dammV2Pool,
-        poolClaimers: cpAmmPoolClaimersPda,
-        position,
-        baseFeeVault,
-        quoteFeeVault,
-        tokenAVault: poolState.tokenAVault,
-        tokenBVault: poolState.tokenBVault,
-        tokenAMint: poolState.tokenAMint,
-        tokenBMint: poolState.tokenBMint,
-        positionNftAccount,
-        tokenAProgram: getTokenProgram(poolState.tokenAFlag),
-        tokenBProgram: getTokenProgram(poolState.tokenBFlag),
-        eventAuthority: cpAmmEventAuthority,
-        cpAmmProgram: CP_AMM_PROGRAM_ID,
-        payer: stranger.publicKey,
-        feeClaimer: feeClaimerPda,
-      } as any)
-      .signers([stranger])
-      .rpc();
-    console.log("claim_position_fee tx:", sig);
+    assert.isTrue(success, "claim_position_fee did not succeed");
 
     const baseVaultBalance = await provider.connection.getTokenAccountBalance(
       baseFeeVault,
@@ -294,11 +317,11 @@ describe("dbc-swap:damm-v2", () => {
       quoteVaultBalance.value.uiAmountString,
     );
 
-    //   const baseAmount = Number(baseVaultBalance.value.amount);
-    //   const quoteAmount = Number(quoteVaultBalance.value.amount);
-    //   assert.isTrue(
-    //     baseAmount > 0 || quoteAmount > 0,
-    //     "fee vaults are empty — claim_position_fee did not sweep any fees from DAMMv2",
-    //   );
+    const baseAmount = Number(baseVaultBalance.value.amount);
+    const quoteAmount = Number(quoteVaultBalance.value.amount);
+    assert.isTrue(
+      baseAmount > 0 || quoteAmount > 0,
+      "fee vaults are empty — claim_position_fee did not sweep any fees from DAMMv2",
+    );
   });
 });
