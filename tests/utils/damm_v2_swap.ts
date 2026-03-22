@@ -15,7 +15,7 @@ export async function dammV2Swap(
   poolState: PoolState,
   amountIn: number,
   swapBaseForQuote: boolean,
-): Promise<string> {
+): Promise<{ signature: string; success: boolean }> {
   const lamportsIn = new BN(amountIn * LAMPORTS_PER_SOL);
 
   const inputTokenMint = swapBaseForQuote
@@ -42,12 +42,11 @@ export async function dammV2Swap(
     referralTokenAccount: null,
   });
 
-  const txSignature = await sendAndConfirmTransaction(
+  const signature = await sendAndConfirmTransaction(
     connection,
     swapTx,
     [payer],
     { skipPreflight: true, commitment: "confirmed" },
   );
-  console.log("DAMMv2 swap tx:", txSignature);
-  return txSignature;
+  return { signature, success: true };
 }

@@ -41,7 +41,7 @@ export async function setupConfigAndPool(
   // Starting fee of the pre-migration DBC pool — used as the starting point for the DAMMv2 fee scheduler
   const preMigrationEndingFeeBps = 500; // 5% — becomes the starting fee in DAMMv2 after migration
   // Target fee after the DAMMv2 market-cap scheduler completes all periods
-  const postMigrationEndingFeeBps = 1;  // 0.01% — final resting fee in DAMMv2
+  const postMigrationEndingFeeBps = 1; // 0.01% — final resting fee in DAMMv2
   // How the DAMMv2 fee decays: linearly as market cap grows across sqrtPrice steps
   const dammV2BaseFeeMode = DammV2BaseFeeMode.FeeTimeSchedulerLinear;
 
@@ -58,7 +58,7 @@ export async function setupConfigAndPool(
 
   const curveConfig = buildCurve({
     token: {
-      tokenType: 1,           // Token2022
+      tokenType: 1, // Token2022
       tokenBaseDecimal: 9,
       tokenQuoteDecimal: 9,
       tokenUpdateAuthority: 1, // Immutable
@@ -72,10 +72,10 @@ export async function setupConfigAndPool(
         // With numberOfPeriod=0 & totalDuration=0 below, it acts as a flat fee.
         baseFeeMode: BaseFeeMode.FeeSchedulerExponential,
         feeSchedulerParam: {
-          startingFeeBps: 400,  // 4% fee at pool launch
-          endingFeeBps: 400,    // 4% — same as start, so fee is constant (no decay)
-          numberOfPeriod: 0,    // 0 periods = no scheduler steps, fee is flat
-          totalDuration: 0,     // 0 duration = scheduler never runs
+          startingFeeBps: 400, // 4% fee at pool launch
+          endingFeeBps: 400, // 4% — same as start, so fee is constant (no decay)
+          numberOfPeriod: 0, // 0 periods = no scheduler steps, fee is flat
+          totalDuration: 0, // 0 duration = scheduler never runs
         },
       },
       // No volatility-based dynamic fee surcharge on top of base fee
@@ -94,8 +94,8 @@ export async function setupConfigAndPool(
     },
     // ─── MIGRATION CONFIG ─────────────────────────────────────────────────────
     migration: {
-      migrationOption: 1,      // MigrationOption.MET_DAMM_V2 — migrate to DAMMv2
-      migrationFeeOption: 6,   // MigrationFeeOption.Customizable — use migratedPoolFee below
+      migrationOption: 1, // MigrationOption.MET_DAMM_V2 — migrate to DAMMv2
+      migrationFeeOption: 6, // MigrationFeeOption.Customizable — use migratedPoolFee below
       migrationFee: { feePercentage: 0, creatorFeePercentage: 0 }, // no one-time migration fee
       // ─── DAMMv2 POOL FEE CONFIG (post-migration) ────────────────────────────
       migratedPoolFee: {
@@ -184,10 +184,7 @@ export async function setupConfigAndPool(
     },
   );
 
-  console.log("\n");
   console.log("✅ Config created! Tx:", signature);
-  console.log("Config address:", config.publicKey.toBase58());
-  console.log("\n");
 
   const poolTx = await client.pool.createPool({
     config: config.publicKey,
@@ -225,14 +222,14 @@ export async function setupConfigAndPool(
 
   const poolAddress = pools[0].publicKey;
 
-  console.log("\n");
   console.log("✅ Pool created! Tx:", poolSignature);
-  console.log("\n");
 
-  const threshold = await client.state.getPoolMigrationQuoteThreshold(
-    poolAddress,
-  );
-  console.log(`The migration threshold is ${Number(threshold) / LAMPORTS_PER_SOL} SOL`);
+  // const threshold = await client.state.getPoolMigrationQuoteThreshold(
+  //   poolAddress,
+  // );
+  // console.log(
+  //   `The migration threshold is ${Number(threshold) / LAMPORTS_PER_SOL} SOL`,
+  // );
 
   return { poolAddress };
 }

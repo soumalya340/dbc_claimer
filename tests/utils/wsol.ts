@@ -77,9 +77,9 @@ export async function wrapSol(
   );
 
   await provider.sendAndConfirm(tx, [payer]);
-  console.log(
-    `Wrapped ${amountSol} SOL → WSOL ATA: ${wsolAta.toBase58()}`,
-  );
+  // console.log(
+  //   `Wrapped ${amountSol} SOL → WSOL ATA: ${wsolAta.toBase58()}`,
+  // );
 
   return wsolAta;
 }

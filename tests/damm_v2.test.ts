@@ -22,6 +22,7 @@ import {
   derivePositionAddress,
   derivePositionNftAccount,
   getTokenProgram,
+  getUnClaimLpFee,
 } from "@meteora-ag/cp-amm-sdk";
 import BN from "bn.js";
 
@@ -52,12 +53,6 @@ describe("dbc-swap:damm-v2", () => {
 
   const feeClaimerPda = deriveFeeClaimerPda(program.programId);
 
-  // Fund the DBC pool authority PDA with SOL for flash rent during migration
-  // The migration CPI uses pool_authority as payer to create DAMM V2 pool accounts
-  const dbcProgramId = new PublicKey(
-    "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
-  );
-
   before(async () => {
     const cpAmmProgramId = new PublicKey(
       "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
@@ -73,9 +68,7 @@ describe("dbc-swap:damm-v2", () => {
     }
   });
 
-  async function createRandomKeyPair(
-    amount: number,
-  ): Promise<{ randomKeypair: Keypair }> {
+  async function createRandomKeyPair(amount: number): Promise<Keypair> {
     const randomKeypair = Keypair.generate();
     const airdropSig = await connection.requestAirdrop(
       randomKeypair.publicKey,
@@ -83,7 +76,7 @@ describe("dbc-swap:damm-v2", () => {
     );
     await connection.confirmTransaction(airdropSig, "confirmed");
 
-    return { randomKeypair };
+    return randomKeypair;
   }
   async function setupPoolAndMigrate(payer: Keypair) {
     const config = Keypair.generate();
@@ -105,7 +98,7 @@ describe("dbc-swap:damm-v2", () => {
 
     // Verify pool state after swap
     const poolState = await client.state.getPool(poolAddress);
-    console.log("Migration progress after swap:", poolState.migrationProgress);
+    // console.log("Migration progress after swap:", poolState.migrationProgress);
     // 0 = PreBondingCurve, 1 = PostBondingCurve, 2 = LockedVesting, 3 = CreatedPool
 
     // This config has poolCreatorAuthority = DBC pool authority PDA (FhVo3mqL8PW5pH5U2CN4XE33DokiyZnUwuGpH2hmHLuM)
@@ -118,7 +111,7 @@ describe("dbc-swap:damm-v2", () => {
 
     const [poolAuthority] = PublicKey.findProgramAddressSync(
       [Buffer.from("pool_authority")],
-      dbcProgramId,
+      DBC_PROGRAM_ID,
     );
     const fundTx = new anchor.web3.Transaction().add(
       SystemProgram.transfer({
@@ -128,7 +121,7 @@ describe("dbc-swap:damm-v2", () => {
       }),
     );
     await sendAndConfirmTransaction(connection, fundTx, [payer]);
-    console.log("Funded pool authority PDA with 1 SOL for flash rent");
+    // console.log("Funded pool authority PDA with 1 SOL for flash rent");
 
     const tx = await client.migration.migrateToDammV2({
       payer: payer.publicKey,
@@ -142,7 +135,7 @@ describe("dbc-swap:damm-v2", () => {
       tx.secondPositionNftKeypair,
     ]);
 
-    console.log("Migrate to DAMM V2 tx:", sig);
+    // console.log("Migrate to DAMM V2 tx:", sig);
 
     return {
       config,
@@ -152,19 +145,46 @@ describe("dbc-swap:damm-v2", () => {
       secondPositionNftMint: tx.secondPositionNftKeypair.publicKey,
     };
   }
+  async function getPositionInfo(positionNftMint: PublicKey): Promise<{
+    unlocked: BN;
+    permLocked: BN;
+    feeTokenA: BN;
+    feeTokenB: BN;
+  }> {
+    const cpAmm = new CpAmm(connection);
+    const position = derivePositionAddress(positionNftMint);
+    const s = await cpAmm.fetchPositionState(position);
+    const poolState = await cpAmm.fetchPoolState(s.pool);
+
+    const unlocked = s.unlockedLiquidity as unknown as BN;
+    const permLocked = s.permanentLockedLiquidity as unknown as BN;
+
+    const { feeTokenA, feeTokenB } = getUnClaimLpFee(poolState, s);
+
+    return { unlocked, permLocked, feeTokenA, feeTokenB };
+  }
+
   async function claimPositionFeeModule(
     payer: Keypair,
     dammV2Pool: PublicKey,
     poolState: any,
     amount: number,
     position: PublicKey,
+    positionNftMint: PublicKey,
     poolClaimersPda: PublicKey,
+    toPrintPostionDetails: boolean = true,
   ): Promise<{ signature: string; success: boolean }> {
     const cpAmmPoolAuthority = derivePoolAuthority();
     // position NFT is held in a token account owned by feeClaimerPda
-    const positionNftAccount = derivePositionNftAccount(position);
+    const positionNftAccount = derivePositionNftAccount(positionNftMint);
 
     await dammV2Swap(payer, dammV2Pool, poolState, amount, false);
+
+    if (toPrintPostionDetails) {
+      const { unlocked, permLocked, feeTokenA, feeTokenB } =
+        await getPositionInfo(positionNftMint);
+      console.log("FeeTokenB:", feeTokenB.toString());
+    }
 
     // fee vaults: [fee_vault, cp_amm_pool, mint] — PDAs owned by our program
     const { baseFeeVault, quoteFeeVault } = deriveCpAmmFeeVaults(
@@ -222,10 +242,9 @@ describe("dbc-swap:damm-v2", () => {
   });
   it("vault-harvest: fee vaults fill with real SOL after a DAMMv2 swap + claim", async () => {
     const payer = (provider.wallet as any).payer;
-    const { config, baseMint, secondPositionNftMint } =
-      await setupPoolAndMigrate(payer);
+    const { secondPositionNftMint } = await setupPoolAndMigrate(payer);
 
-    // ── 1. Locate the real DAMMv2 pool from the migrated position NFT ─────────
+    // ── Locate the real DAMMv2 pool from the migrated position NFT ─────────
     // secondPositionNftMint is the one whose authority is transferred to fee_claimer
     const cpAmm = new CpAmm(connection);
     const position = derivePositionAddress(secondPositionNftMint);
@@ -256,6 +275,7 @@ describe("dbc-swap:damm-v2", () => {
     const poolClaimersAccount = await program.account.poolClaimers.fetch(
       cpAmmPoolClaimersPda,
     );
+
     console.log(
       "PoolClaimers account info:",
       JSON.stringify(
@@ -280,10 +300,13 @@ describe("dbc-swap:damm-v2", () => {
         2,
       ),
     );
-    console.log("pool_claimers initialized for DAMMv2 pool");
 
-    // // ── Call claim_position_fee as a random stranger (permissionless) ──────
-    const stranger = createRandomKeyPair(12);
+    const stranger = await createRandomKeyPair(12);
+
+    const { feeTokenA, feeTokenB } = await getPositionInfo(
+      secondPositionNftMint,
+    );
+    console.log("FeeTokenB before swap:", feeTokenB.toString());
 
     const { baseFeeVault, quoteFeeVault } = deriveCpAmmFeeVaults(
       dammV2Pool,
@@ -298,6 +321,7 @@ describe("dbc-swap:damm-v2", () => {
       poolState,
       1,
       position,
+      secondPositionNftMint,
       cpAmmPoolClaimersPda,
     );
 
@@ -311,17 +335,15 @@ describe("dbc-swap:damm-v2", () => {
     );
 
     console.log(
-      "base_fee_vault balance:",
-      baseVaultBalance.value.uiAmountString,
-      "| quote_fee_vault balance:",
+      "quote_fee_vault balance after claim:",
       quoteVaultBalance.value.uiAmountString,
     );
 
-    const baseAmount = Number(baseVaultBalance.value.amount);
     const quoteAmount = Number(quoteVaultBalance.value.amount);
+
     assert.isTrue(
-      baseAmount > 0 || quoteAmount > 0,
-      "fee vaults are empty — claim_position_fee did not sweep any fees from DAMMv2",
+      quoteAmount > 0 || quoteAmount === feeTokenB.toNumber(),
+      "quote_fee_vault balance after claim is not equal to the fee token B amount",
     );
   });
 });
