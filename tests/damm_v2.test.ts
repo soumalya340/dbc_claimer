@@ -1,7 +1,19 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { PublicKey, SystemProgram } from "@solana/web3.js";
-import { CpAmm, derivePositionAddress } from "@meteora-ag/cp-amm-sdk";
+import {
+  PublicKey,
+  SystemProgram,
+  sendAndConfirmTransaction,
+} from "@solana/web3.js";
+import {
+  getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountIdempotentInstruction,
+} from "@solana/spl-token";
+import {
+  CpAmm,
+  derivePositionAddress,
+  getTokenProgram,
+} from "@meteora-ag/cp-amm-sdk";
 
 import {
   deriveFeeClaimerPda,
@@ -11,7 +23,11 @@ import {
 import { DbcSwap } from "../target/types/dbc_swap";
 import { fetchAllWalletNfts } from "./utils/nft_balance";
 import { assert } from "chai";
-import { connection, CP_AMM_PROGRAM_ID } from "./utils/helpers";
+import {
+  connection,
+  CP_AMM_PROGRAM_ID,
+  fetchclaimerspdainfo,
+} from "./utils/helpers";
 
 import {
   createRandomKeyPair,
@@ -35,7 +51,7 @@ describe("dbc-swap:damm-v2", () => {
       );
   });
 
-  it("fee claimer should hold DAMMv2 NFT custody", async () => {
+  it("test1: fee claimer should hold DAMMv2 NFT custody", async () => {
     const payer = (provider.wallet as any).payer;
 
     const nftBalance = await fetchAllWalletNfts(feeClaimerPda.toBase58());
@@ -49,7 +65,7 @@ describe("dbc-swap:damm-v2", () => {
     );
   });
 
-  it("vault-harvest: fee vaults fill with real SOL after a DAMMv2 swap + claim", async () => {
+  it("test2: fee vaults fill with real SOL after a DAMMv2 swap + claim", async () => {
     const payer = (provider.wallet as any).payer;
     const { secondPositionNftMint } = await setupPoolAndMigrate(
       payer,
@@ -79,34 +95,7 @@ describe("dbc-swap:damm-v2", () => {
       .signers([payer])
       .rpc();
 
-    const poolClaimersAccount = await program.account.poolClaimers.fetch(
-      cpAmmPoolClaimersPda,
-    );
-
-    console.log(
-      "PoolClaimers account info:",
-      JSON.stringify(
-        {
-          pool: poolClaimersAccount.pool.toBase58(),
-          poolState: JSON.stringify(poolClaimersAccount.poolState),
-          claimerAddresses: poolClaimersAccount.claimerAddresses.map(
-            (c: PublicKey) => c.toBase58(),
-          ),
-          claimerBps: poolClaimersAccount.claimerBps,
-          claimedBase: poolClaimersAccount.claimedBase.map((n: anchor.BN) =>
-            n.toString(),
-          ),
-          claimedQuote: poolClaimersAccount.claimedQuote.map((n: anchor.BN) =>
-            n.toString(),
-          ),
-          lastClaimed: poolClaimersAccount.lastClaimed.toString(),
-          lastDistributed: poolClaimersAccount.lastDistributed.toString(),
-          bump: poolClaimersAccount.bump,
-        },
-        null,
-        2,
-      ),
-    );
+    await fetchclaimerspdainfo(program, cpAmmPoolClaimersPda);
 
     const stranger = await createRandomKeyPair(12);
 
@@ -136,9 +125,6 @@ describe("dbc-swap:damm-v2", () => {
 
     assert.isTrue(success, "claim_position_fee did not succeed");
 
-    const baseVaultBalance = await provider.connection.getTokenAccountBalance(
-      baseFeeVault,
-    );
     const quoteVaultBalance = await provider.connection.getTokenAccountBalance(
       quoteFeeVault,
     );
@@ -154,5 +140,73 @@ describe("dbc-swap:damm-v2", () => {
       quoteAmount > 0 || quoteAmount === feeTokenB.toNumber(),
       "quote_fee_vault balance after claim is not equal to the fee token B amount",
     );
+
+    // --- distribute_fees: push vault balances to registered claimers ---
+    const baseTokenProgram = getTokenProgram(poolState.tokenAFlag);
+    const quoteTokenProgram = getTokenProgram(poolState.tokenBFlag);
+
+    const payerBaseAta = getAssociatedTokenAddressSync(
+      poolState.tokenAMint,
+      payer.publicKey,
+      false,
+      baseTokenProgram,
+    );
+    const payerQuoteAta = getAssociatedTokenAddressSync(
+      poolState.tokenBMint,
+      payer.publicKey,
+      false,
+      quoteTokenProgram,
+    );
+
+    // Idempotently create both ATAs so the transfer can land
+    const createAtaTx = new anchor.web3.Transaction().add(
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        payerBaseAta,
+        payer.publicKey,
+        poolState.tokenAMint,
+        baseTokenProgram,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        payerQuoteAta,
+        payer.publicKey,
+        poolState.tokenBMint,
+        quoteTokenProgram,
+      ),
+    );
+    await sendAndConfirmTransaction(provider.connection, createAtaTx, [payer]);
+
+    await program.methods
+      .distributeFees()
+      .accounts({
+        caller: payer.publicKey,
+        pool: dammV2Pool,
+        poolClaimers: cpAmmPoolClaimersPda,
+        baseFeeVault,
+        quoteFeeVault,
+        baseMint: poolState.tokenAMint,
+        quoteMint: poolState.tokenBMint,
+        feeClaimer: feeClaimerPda,
+        tokenBaseProgram: baseTokenProgram,
+        tokenQuoteProgram: quoteTokenProgram,
+      } as any)
+      .remainingAccounts([
+        { pubkey: payerBaseAta, isSigner: false, isWritable: true },
+        { pubkey: payerQuoteAta, isSigner: false, isWritable: true },
+      ])
+      .signers([payer])
+      .rpc();
+
+    const claimerQuoteBalance =
+      await provider.connection.getTokenAccountBalance(payerQuoteAta);
+    const claimerQuoteAmount = Number(claimerQuoteBalance.value.amount);
+
+    assert.strictEqual(
+      claimerQuoteAmount,
+      quoteAmount,
+      `Claimer quote balance (${claimerQuoteAmount}) should equal quoteFeeVaultBalance (${quoteAmount})`,
+    );
+    await fetchclaimerspdainfo(program, cpAmmPoolClaimersPda);
   });
 });
