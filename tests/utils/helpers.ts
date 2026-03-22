@@ -4,7 +4,6 @@ import { CpAmm } from "@meteora-ag/cp-amm-sdk";
 import * as anchor from "@coral-xyz/anchor";
 
 export { wrapSol } from "./wsol";
-export { deriveAllPdas } from "./constant";
 
 const CLUSTER_URL = "http://localhost:8899";
 export const connection = new Connection(CLUSTER_URL, "confirmed");
@@ -98,5 +97,3 @@ export async function distribute_fees(
 
   return { signature: sig, success: true };
 }
-
-

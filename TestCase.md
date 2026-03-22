@@ -201,44 +201,66 @@
 
 ---
 
-## Test 1: Admin Receives 100% of DBC Partner Trading Fees
+## Test 1: Admin Gets 100% of Trading Fees
 
-**Goal:** Prove that after a DBC pool is set up (with `feeClaimer` pointing to this program's PDA), the accumulated partner trading fees can be swept into the program's fee vaults and fully distributed to the sole registered admin claimer.
+**What we’re checking:** When someone trades in the DBC pool, fees pile up. This test confirms the admin can collect all of those fees and that every single lamport lands in their wallet.
 
-**Constraints:** Only one user and signer throughout — the admin payer. No `console.log` statements.
+**Setup:** Only the admin wallet is used. No other users.
 
-**Flow:**
+**Steps:**
 
-1. Set up the pool using `setupPoolAndMigrate` with the following liquidity split:
-   - **Partner:** 10% permanently locked, 90% unlocked.
-   - **Creator:** 0% permanently locked, 0% unlocked.
-   - The 110 SOL swap inside `setupPoolAndMigrate` generates partner trading fees in the DBC pool before migration.
-2. Derive the pool claimers PDA keyed off the DBC pool address.
-3. Register the admin payer as the **sole claimer at 100%** (10,000 BPS) via `setPoolClaimers` with `poolState = { dbc: {} }`.
-4. Fetch PDA state via `fetchclaimerspdainfo` and **assert initial conditions:**
-   - BPS array is `[10000]` — admin holds 100%.
-   - Claimed base and claimed quote are both zero.
-   - `lastDistributed` and `lastClaimed` are both zero.
-5. Derive the DBC pool authority PDA (`["pool_authority"]` off the DBC program).
-6. Derive the DBC event authority PDA (`["__event_authority"]` off the DBC program).
-7. Derive the program's fee vaults (`["fee_vault", dbcPool, baseMint]` and `["fee_vault", dbcPool, WSOL]`).
-8. Fetch on-chain DBC pool state to obtain `baseVault` and `quoteVault` (the DBC pool's token vaults).
-9. Call `claimPartnerTradingFee(u64::MAX, u64::MAX)` — sweeps all accumulated partner fees from the DBC pool into the program's PDA-owned fee vaults (created on first call via `init_if_needed`).
-10. Read the quote fee vault balance. **Assert:** it is greater than zero (real fees landed).
-11. Create Associated Token Accounts (ATAs) for the admin payer (base + quote tokens).
-12. Call `distributeFees` — pushes the entire vault balance to the sole 100% claimer.
-13. Read the admin payer's quote ATA balance. **Assert (strict):** the payer received exactly the full vault amount — not even 1 lamport less.
-14. Fetch the final PDA state via `fetchclaimerspdainfo`. **Assert:** `claimedQuote[0]` equals the exact fee vault amount.
+1. Create the pool (a 110 SOL trade happens automatically during setup, generating fees).
+2. Register the admin as the only fee recipient (100% share).
+3. **Check starting state:** no fees collected yet, everything at zero.
+4. Pull all accumulated fees out of the DBC pool into the program’s holding vault.
+5. **Check:** the holding vault actually has SOL in it (fees were real).
+6. Pay out the vault to the admin.
+7. **Check (exact):** admin received every lamport — nothing missing.
+8. **Check:** the on-chain record shows admin’s collected total matches exactly.
 
-## Test Case 2 : -- just check if we do multiple people for users to claim
+---
 
-1. First intialize a poolclaimers with 3 users ,
-   admin , user 2 , user3 -- 20 % , 30% , 50 %
-2. check each users percentage should exactly the same , fetch the claimers pda using fetchclaimerspdainfo
-3. call setupMigrate
-4. claim fee, distribute and check if everyone got equally -- call it through user 1(random keypair )
-5. change the percentages from , using updateFeeBps function, and change it to 50% , 50% ,0
-6. swap  using swap.ts in utils 
-7. claim and distribute fees
-8. check if everyone got properly or not.
+## Test 2: Three-Way Fee Split, Percentage Changes, and History Preservation
 
+**What we’re checking:** Three people share fees. The split can be changed mid-way. Changing the split doesn’t erase past earnings. Anyone (even a stranger) can trigger the fee collection.
+
+**Setup note:** Pool is configured with a very high migration threshold (10,000 SOL) so it stays in its initial state through two rounds of trading — allowing us to run two separate fee cycles on the same pool.
+
+---
+
+### Round 1 — Split: 20% / 30% / 50%
+
+1. Create three users (admin, user2, user3). Admin and user1 get funded for transactions.
+2. Set up the pool and register the three fee recipients: **admin gets 20%, user2 gets 30%, user3 gets 50%**.
+3. **Check starting state:** no fees collected, all balances at zero.
+4. Do a 5 SOL trade to generate fees.
+5. Create token wallets for all three users.
+6. **user1** (a random stranger) triggers the fee collection — proves anyone can do this step, not just the admin.
+7. Admin pays out the collected fees to all three.
+8. **Check (exact):** each person received exactly their percentage — admin 20%, user2 30%, user3 the rest.
+9. **Check:** timestamps show distribution happened.
+
+---
+
+### Change the Split — 50% / 50% / 0% (past earnings kept)
+
+10. Admin updates the split: **admin 50%, user2 50%, user3 0%**.
+11. **Check:** new percentages saved correctly.
+12. **Check:** Round 1 earnings are still recorded — changing percentages does NOT wipe history.
+
+---
+
+### Round 2 — New fees under the updated split
+
+13. Do another 5 SOL trade.
+14. user1 collects fees again.
+15. Admin pays out again.
+16. **Check (exact):** the new earnings (Round 2 only) were split 50/50 between admin and user2. user3 gets nothing (0% share).
+
+---
+
+**Key rules this test enforces:**
+
+- Anyone can trigger fee collection — it’s permissionless.
+- Changing percentages (`updateClaimersBps`) keeps past earnings intact.
+- All splits are exact integer math — no rounding errors allowed.

@@ -401,7 +401,7 @@ describe("dbc-swap:dbc", () => {
 
     await distribute_fees(
       program,
-      payer,
+      user1,
       poolAddress,
       dbcPoolClaimersPda,
       baseFeeVault,
@@ -513,7 +513,7 @@ describe("dbc-swap:dbc", () => {
     // ── Step 12: Distribute round-2 fees ────────────────────────────────────
     await distribute_fees(
       program,
-      payer,
+      user1,
       poolAddress,
       dbcPoolClaimersPda,
       baseFeeVault,
