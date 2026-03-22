@@ -1,10 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import {
-  PublicKey,
-  SystemProgram,
-  sendAndConfirmTransaction,
-} from "@solana/web3.js";
+import { SystemProgram, sendAndConfirmTransaction } from "@solana/web3.js";
 import {
   getAssociatedTokenAddressSync,
   createAssociatedTokenAccountIdempotentInstruction,
@@ -17,20 +13,23 @@ import {
   getTokenProgram,
 } from "@meteora-ag/cp-amm-sdk";
 
+import { fetchAllWalletNfts } from "./utils/nft_balance";
+
 import {
   deriveFeeClaimerPda,
   derivePoolClaimersPda,
   deriveCpAmmFeeVaults,
   deriveCpAmmEventAuthority,
 } from "./utils/constant";
-import { DbcSwap } from "../target/types/dbc_swap";
-import { fetchAllWalletNfts } from "./utils/nft_balance";
-import { assert } from "chai";
 import {
   connection,
   CP_AMM_PROGRAM_ID,
   fetchclaimerspdainfo,
+  distribute_fees,
 } from "./utils/helpers";
+
+import { DbcSwap } from "../target/types/dbc_swap";
+import { assert } from "chai";
 
 import {
   createRandomKeyPair,
@@ -99,7 +98,7 @@ describe("dbc-swap:damm-v2", () => {
       .signers([payer])
       .rpc();
 
-    await fetchclaimerspdainfo(program, cpAmmPoolClaimersPda);
+    await fetchclaimerspdainfo(program, cpAmmPoolClaimersPda, false);
 
     const stranger = await createRandomKeyPair(12);
 
@@ -211,7 +210,6 @@ describe("dbc-swap:damm-v2", () => {
       quoteAmount,
       `Claimer quote balance (${claimerQuoteAmount}) should equal quoteFeeVaultBalance (${quoteAmount})`,
     );
-    await fetchclaimerspdainfo(program, cpAmmPoolClaimersPda);
   });
 
   it("test3: admin-set claimers receive proportional fees and percentages update correctly", async () => {
@@ -342,23 +340,19 @@ describe("dbc-swap:damm-v2", () => {
       { pubkey: quoteATAs[i], isSigner: false, isWritable: true },
     ]);
 
-    await program.methods
-      .distributeFees()
-      .accounts({
-        caller: payer.publicKey,
-        pool: dammV2Pool,
-        poolClaimers: cpAmmPoolClaimersPda,
-        baseFeeVault,
-        quoteFeeVault,
-        baseMint: poolState.tokenAMint,
-        quoteMint: poolState.tokenBMint,
-        feeClaimer: feeClaimerPda,
-        tokenBaseProgram: baseTokenProgram,
-        tokenQuoteProgram: quoteTokenProgram,
-      } as any)
-      .remainingAccounts(remainingAccounts)
-      .signers([payer])
-      .rpc();
+    await distribute_fees(
+      program,
+      payer,
+      dammV2Pool,
+      cpAmmPoolClaimersPda,
+      baseFeeVault,
+      quoteFeeVault,
+      poolState,
+      feeClaimerPda,
+      baseTokenProgram,
+      quoteTokenProgram,
+      remainingAccounts,
+    );
 
     // Step 4: Verify proportional payouts
     const pdaInfoRound1 = await fetchclaimerspdainfo(
@@ -433,23 +427,19 @@ describe("dbc-swap:damm-v2", () => {
       await provider.connection.getTokenAccountBalance(quoteFeeVault);
     const quoteAmount2 = Number(quoteVaultBalanceRound2.value.amount);
 
-    await program.methods
-      .distributeFees()
-      .accounts({
-        caller: payer.publicKey,
-        pool: dammV2Pool,
-        poolClaimers: cpAmmPoolClaimersPda,
-        baseFeeVault,
-        quoteFeeVault,
-        baseMint: poolState.tokenAMint,
-        quoteMint: poolState.tokenBMint,
-        feeClaimer: feeClaimerPda,
-        tokenBaseProgram: baseTokenProgram,
-        tokenQuoteProgram: quoteTokenProgram,
-      } as any)
-      .remainingAccounts(remainingAccounts)
-      .signers([payer])
-      .rpc();
+    await distribute_fees(
+      program,
+      payer,
+      dammV2Pool,
+      cpAmmPoolClaimersPda,
+      baseFeeVault,
+      quoteFeeVault,
+      poolState,
+      feeClaimerPda,
+      baseTokenProgram,
+      quoteTokenProgram,
+      remainingAccounts,
+    );
 
     // Step 8: Verify updated proportions (claimedQuote reset when setPoolClaimers was re-called)
     const pdaInfoRound2 = await fetchclaimerspdainfo(
@@ -549,23 +539,19 @@ describe("dbc-swap:damm-v2", () => {
     );
     const quoteAmount3 = Number(quoteVaultRound3.value.amount);
 
-    await program.methods
-      .distributeFees()
-      .accounts({
-        caller: payer.publicKey,
-        pool: dammV2Pool,
-        poolClaimers: cpAmmPoolClaimersPda,
-        baseFeeVault,
-        quoteFeeVault,
-        baseMint: poolState.tokenAMint,
-        quoteMint: poolState.tokenBMint,
-        feeClaimer: feeClaimerPda,
-        tokenBaseProgram: baseTokenProgram,
-        tokenQuoteProgram: quoteTokenProgram,
-      } as any)
-      .remainingAccounts(remainingAccounts)
-      .signers([payer])
-      .rpc();
+    await distribute_fees(
+      program,
+      payer,
+      dammV2Pool,
+      cpAmmPoolClaimersPda,
+      baseFeeVault,
+      quoteFeeVault,
+      poolState,
+      feeClaimerPda,
+      baseTokenProgram,
+      quoteTokenProgram,
+      remainingAccounts,
+    );
 
     const pdaInfoRound3 = await fetchclaimerspdainfo(
       program,
@@ -589,5 +575,171 @@ describe("dbc-swap:damm-v2", () => {
     assert.strictEqual(payerRound3Delta, payerExpected3);
     assert.strictEqual(user2Round3Delta, user2Expected3);
     assert.strictEqual(user3Round3Delta, user3Expected3);
+  });
+
+  it("test4: fee claimer captures 100% of fees with mixed locked/unlocked liquidity", async () => {
+    const payer = (provider.wallet as any).payer;
+
+    // Pool: partner 10% permanently locked, 90% unlocked; creator 0%
+    // Creator is 0%, so only firstPositionNftMint is created on-chain
+    const { firstPositionNftMint } = await setupPoolAndMigrate(
+      payer,
+      feeClaimerPda,
+      10,
+      90,
+      0,
+      0,
+    );
+
+    const cpAmm = new CpAmm(connection);
+    const position = derivePositionAddress(firstPositionNftMint);
+    const positionState = await cpAmm.fetchPositionState(position);
+    const dammV2Pool = positionState.pool;
+    const poolState = await cpAmm.fetchPoolState(dammV2Pool);
+
+    const cpAmmPoolClaimersPda = derivePoolClaimersPda(
+      dammV2Pool,
+      program.programId,
+    );
+
+    // Register admin as sole 100% claimer
+    await program.methods
+      .setPoolClaimers([payer.publicKey], [10_000], { dammV2: {} })
+      .accounts({
+        deployer: payer.publicKey,
+        pool: dammV2Pool,
+        poolClaimers: cpAmmPoolClaimersPda,
+        systemProgram: SystemProgram.programId,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    // Assert initial PDA state
+    const initialInfo = await fetchclaimerspdainfo(
+      program,
+      cpAmmPoolClaimersPda,
+      false,
+    );
+    assert.deepEqual(initialInfo.claimerBps, [10_000]);
+    assert.strictEqual(initialInfo.claimedBase[0].toNumber(), 0);
+    assert.strictEqual(initialInfo.claimedQuote[0].toNumber(), 0);
+    assert.strictEqual(initialInfo.lastDistributed.toNumber(), 0);
+    assert.strictEqual(initialInfo.lastClaimed.toNumber(), 0);
+
+    // Assert position has both unlocked (90%) and permanently locked (10%) liquidity
+    const { unlocked, permLocked } = await getPositionInfo(
+      firstPositionNftMint,
+    );
+    assert.isTrue(unlocked.gtn(0), "position should have unlocked liquidity");
+    assert.isTrue(
+      permLocked.gtn(0),
+      "position should have permanently locked liquidity",
+    );
+
+    // Swap to generate fees, then claim into fee vault
+    const { baseFeeVault, quoteFeeVault } = deriveCpAmmFeeVaults(
+      dammV2Pool,
+      poolState.tokenAMint,
+      poolState.tokenBMint,
+      program.programId,
+    );
+
+    await claimPositionFeeModule(
+      payer,
+      dammV2Pool,
+      poolState,
+      1,
+      position,
+      firstPositionNftMint,
+      cpAmmPoolClaimersPda,
+      program,
+      feeClaimerPda,
+      false,
+    );
+
+    // Read exact vault balance before distribution
+    const quoteVaultBalance = await provider.connection.getTokenAccountBalance(
+      quoteFeeVault,
+    );
+    const quoteAmount = Number(quoteVaultBalance.value.amount);
+    assert.isTrue(
+      quoteAmount > 0,
+      "fee vault must hold non-zero fees after swap + claim",
+    );
+
+    // Create admin payer ATAs
+    const baseTokenProgram = getTokenProgram(poolState.tokenAFlag);
+    const quoteTokenProgram = getTokenProgram(poolState.tokenBFlag);
+
+    const payerBaseAta = getAssociatedTokenAddressSync(
+      poolState.tokenAMint,
+      payer.publicKey,
+      false,
+      baseTokenProgram,
+    );
+    const payerQuoteAta = getAssociatedTokenAddressSync(
+      poolState.tokenBMint,
+      payer.publicKey,
+      false,
+      quoteTokenProgram,
+    );
+
+    const createAtaTx = new anchor.web3.Transaction().add(
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        payerBaseAta,
+        payer.publicKey,
+        poolState.tokenAMint,
+        baseTokenProgram,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        payerQuoteAta,
+        payer.publicKey,
+        poolState.tokenBMint,
+        quoteTokenProgram,
+      ),
+    );
+    await sendAndConfirmTransaction(provider.connection, createAtaTx, [payer]);
+
+    // Distribute fees — 100% to admin payer
+    await distribute_fees(
+      program,
+      payer,
+      dammV2Pool,
+      cpAmmPoolClaimersPda,
+      baseFeeVault,
+      quoteFeeVault,
+      poolState,
+      feeClaimerPda,
+      baseTokenProgram,
+      quoteTokenProgram,
+      [
+        { pubkey: payerBaseAta, isSigner: false, isWritable: true },
+        { pubkey: payerQuoteAta, isSigner: false, isWritable: true },
+      ],
+    );
+
+    // Assert: admin received exactly 100% — not even 1 lamport less
+    const payerQuoteBalance = await provider.connection.getTokenAccountBalance(
+      payerQuoteAta,
+    );
+    assert.strictEqual(
+      Number(payerQuoteBalance.value.amount),
+      quoteAmount,
+      `fee claimer must receive exactly 100% of fees (${quoteAmount} lamports) — not even 1 lamport less`,
+    );
+
+    // Confirm PDA claimedQuote reflects the full amount
+    const finalInfo = await fetchclaimerspdainfo(
+      program,
+      cpAmmPoolClaimersPda,
+      false,
+    );
+    assert.strictEqual(
+      finalInfo.claimedQuote[0].toNumber(),
+      quoteAmount,
+      "PDA claimedQuote must equal the exact fee vault amount",
+    );
   });
 });

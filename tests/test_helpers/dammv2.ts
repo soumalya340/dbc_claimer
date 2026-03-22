@@ -40,6 +40,10 @@ export async function createRandomKeyPair(amount: number): Promise<Keypair> {
 export async function setupPoolAndMigrate(
   payer: Keypair,
   feeClaimerPda: PublicKey,
+  partnerPermanentLockedLiquidityPercentage_args: number = 40,
+  partnerLiquidityPercentage_args: number = 0,
+  creatorPermanentLockedLiquidityPercentage_args: number = 60,
+  creatorLiquidityPercentage_args: number = 0,
 ) {
   const config = Keypair.generate();
 
@@ -51,6 +55,10 @@ export async function setupPoolAndMigrate(
     feeClaimerPda,
     101,
     baseMint,
+    partnerPermanentLockedLiquidityPercentage_args,
+    partnerLiquidityPercentage_args,
+    creatorPermanentLockedLiquidityPercentage_args,
+    creatorLiquidityPercentage_args,
   );
 
   // Need enough SOL to fill quote_reserve past 101 SOL threshold after fees (4% trading fee)

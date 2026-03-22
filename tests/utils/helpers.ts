@@ -1,4 +1,4 @@
-import { PublicKey, Connection } from "@solana/web3.js";
+import { PublicKey, Connection, Keypair } from "@solana/web3.js";
 import { DynamicBondingCurveClient } from "@meteora-ag/dynamic-bonding-curve-sdk";
 import { CpAmm } from "@meteora-ag/cp-amm-sdk";
 import * as anchor from "@coral-xyz/anchor";
@@ -59,4 +59,41 @@ export async function fetchclaimerspdainfo(
     );
 
   return poolClaimersAccount;
+}
+export async function distribute_fees(
+  program: any,
+  payer: Keypair,
+  pool: PublicKey,
+  poolClaimersPda: PublicKey,
+  baseFeeVault: PublicKey,
+  quoteFeeVault: PublicKey,
+  poolState: any,
+  feeClaimerPda: PublicKey,
+  baseTokenProgram: PublicKey,
+  quoteTokenProgram: PublicKey,
+  remainingAccounts: {
+    pubkey: PublicKey;
+    isSigner: boolean;
+    isWritable: boolean;
+  }[],
+): Promise<{ signature: string; success: boolean }> {
+  const sig = await program.methods
+    .distributeFees()
+    .accounts({
+      caller: payer.publicKey,
+      pool,
+      poolClaimers: poolClaimersPda,
+      baseFeeVault,
+      quoteFeeVault,
+      baseMint: poolState.tokenAMint,
+      quoteMint: poolState.tokenBMint,
+      feeClaimer: feeClaimerPda,
+      tokenBaseProgram: baseTokenProgram,
+      tokenQuoteProgram: quoteTokenProgram,
+    } as any)
+    .remainingAccounts(remainingAccounts)
+    .signers([payer])
+    .rpc();
+
+  return { signature: sig, success: true };
 }

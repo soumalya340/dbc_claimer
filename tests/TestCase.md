@@ -100,10 +100,35 @@
 ---
 
 **Key Invariants Across All Tests:**
+
 - No `console.log` statements anywhere in the test code.
 - All fee splits are verified as exact integers (floor division, remainder to last claimer).
 - `setPoolClaimers` resets claimed history; `updateClaimersBps` does not.
 - Any wallet — even a randomly created one with no role — can call `claimPositionFee`.
 
+## Test 4: Fee Claimer Captures 100% of Fees with Mixed Locked/Unlocked Liquidity
 
+**Goal:** Prove that when a single admin is registered as the sole 100% claimer, they receive every lamport of fees — regardless of whether the pool's liquidity is split between permanently locked and unlocked portions.
 
+**Constraints:** Only one user and signer throughout — the admin payer. No `console.log` statements.
+
+**Flow:**
+
+1. Set up the pool using `setupPoolAndMigrate` with the following liquidity split:
+   - **Partner:** 10% permanently locked, 90% unlocked.
+   - **Creator:** 0% permanently locked, 0% unlocked.
+2. Derive the pool address, fetch on-chain pool state, and derive the pool claimers PDA.
+3. Register the admin payer as the **sole claimer at 100%** (10,000 BPS) via `setPoolClaimers`.
+4. Fetch PDA state via `fetchclaimerspdainfo` and **assert initial conditions:**
+   - BPS array is `[10000]` — admin holds 100%.
+   - Claimed base and claimed quote are both zero.
+   - `lastDistributed` and `lastClaimed` are both zero.
+5. Fetch position info via `getPositionInfo` and **assert liquidity structure:**
+   - `unlocked` liquidity is greater than zero (the 90% unlocked portion exists).
+   - `permanentlyLocked` liquidity is greater than zero (the 10% locked portion exists).
+6. Call `claimPositionFeeModule` with the admin payer — this triggers a swap to generate fees, then claims them from the DAMMv2 position into the fee vault.
+7. Read the quote fee vault balance. **Assert:** it is greater than zero (real fees landed).
+8. Create Associated Token Accounts (ATAs) for the admin payer (base + quote).
+9. Call `distributeFees` — pushes the entire vault balance to the sole 100% claimer.
+10. Read the admin payer's quote ATA balance. **Assert (strict):** the payer received exactly the full vault amount — not even 1 lamport less.
+11. Fetch the final PDA state via `fetchclaimerspdainfo`. **Assert:** `claimedQuote[0]` equals the exact fee vault amount.
