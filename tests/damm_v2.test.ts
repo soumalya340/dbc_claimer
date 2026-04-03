@@ -25,7 +25,10 @@ import {
   connection,
   CP_AMM_PROGRAM_ID,
   fetchclaimerspdainfo,
+  fetchClaimerState,
   distribute_fees,
+  buildInitClaimersRemainingAccounts,
+  buildDistributeFeesRemainingAccounts,
 } from "./utils/helpers";
 
 import { DbcSwap } from "../target/types/dbc_swap";
@@ -87,16 +90,28 @@ describe("dbc-swap:damm-v2", () => {
       program.programId,
     );
 
-    console.log("Hello1");
+    const baseTokenProgram = getTokenProgram(poolState.tokenAFlag);
+    const quoteTokenProgram = getTokenProgram(poolState.tokenBFlag);
+
+    const initRemainingAccounts = buildInitClaimersRemainingAccounts(
+      dammV2Pool,
+      [payer.publicKey],
+      program.programId,
+    );
 
     await program.methods
       .initializePoolClaimers([payer.publicKey], [10_000], { dammV2: {} })
       .accounts({
         deployer: payer.publicKey,
         pool: dammV2Pool,
+        baseMint: poolState.tokenAMint,
+        quoteMint: poolState.tokenBMint,
         poolClaimers: cpAmmPoolClaimersPda,
+        tokenBaseProgram: baseTokenProgram,
+        tokenQuoteProgram: quoteTokenProgram,
         systemProgram: SystemProgram.programId,
       } as any)
+      .remainingAccounts(initRemainingAccounts)
       .signers([payer])
       .rpc();
 
@@ -147,9 +162,6 @@ describe("dbc-swap:damm-v2", () => {
     );
 
     // --- distribute_fees: push vault balances to registered claimers ---
-    const baseTokenProgram = getTokenProgram(poolState.tokenAFlag);
-    const quoteTokenProgram = getTokenProgram(poolState.tokenBFlag);
-
     const payerBaseAta = getAssociatedTokenAddressSync(
       poolState.tokenAMint,
       payer.publicKey,
@@ -182,26 +194,29 @@ describe("dbc-swap:damm-v2", () => {
     );
     await sendAndConfirmTransaction(provider.connection, createAtaTx, [payer]);
 
-    await program.methods
-      .distributeFees()
-      .accounts({
-        caller: payer.publicKey,
-        pool: dammV2Pool,
-        poolClaimers: cpAmmPoolClaimersPda,
-        baseFeeVault,
-        quoteFeeVault,
-        baseMint: poolState.tokenAMint,
-        quoteMint: poolState.tokenBMint,
-        feeClaimer: feeClaimerPda,
-        tokenBaseProgram: baseTokenProgram,
-        tokenQuoteProgram: quoteTokenProgram,
-      } as any)
-      .remainingAccounts([
-        { pubkey: payerBaseAta, isSigner: false, isWritable: true },
-        { pubkey: payerQuoteAta, isSigner: false, isWritable: true },
-      ])
-      .signers([payer])
-      .rpc();
+    const distributeRemainingAccounts = buildDistributeFeesRemainingAccounts(
+      dammV2Pool,
+      [payer.publicKey],
+      poolState.tokenAMint,
+      poolState.tokenBMint,
+      baseTokenProgram,
+      quoteTokenProgram,
+      program.programId,
+    );
+
+    await distribute_fees(
+      program,
+      payer,
+      dammV2Pool,
+      cpAmmPoolClaimersPda,
+      baseFeeVault,
+      quoteFeeVault,
+      poolState,
+      feeClaimerPda,
+      baseTokenProgram,
+      quoteTokenProgram,
+      distributeRemainingAccounts,
+    );
 
     const claimerQuoteBalance =
       await provider.connection.getTokenAccountBalance(payerQuoteAta);
@@ -214,7 +229,7 @@ describe("dbc-swap:damm-v2", () => {
     );
   });
 
-  it.skip("test3: admin-set claimers receive proportional fees and percentages update correctly", async () => {
+  it("test3: admin-set claimers receive proportional fees and percentages update correctly", async () => {
     const payer = (provider.wallet as any).payer;
 
     const { secondPositionNftMint } = await setupPoolAndMigrate(
@@ -236,19 +251,30 @@ describe("dbc-swap:damm-v2", () => {
     const user2 = await createRandomKeyPair(2);
     const user3 = await createRandomKeyPair(2);
 
+    const baseTokenProgram = getTokenProgram(poolState.tokenAFlag);
+    const quoteTokenProgram = getTokenProgram(poolState.tokenBFlag);
+    const claimers = [payer.publicKey, user2.publicKey, user3.publicKey];
+
     // Step 1: Set claimers payer=20%, user2=30%, user3=50%
     await program.methods
-      .initializePoolClaimers(
-        [payer.publicKey, user2.publicKey, user3.publicKey],
-        [2000, 3000, 5000],
-        { dammV2: {} },
-      )
+      .initializePoolClaimers(claimers, [2000, 3000, 5000], { dammV2: {} })
       .accounts({
         deployer: payer.publicKey,
         pool: dammV2Pool,
+        baseMint: poolState.tokenAMint,
+        quoteMint: poolState.tokenBMint,
         poolClaimers: cpAmmPoolClaimersPda,
+        tokenBaseProgram: baseTokenProgram,
+        tokenQuoteProgram: quoteTokenProgram,
         systemProgram: SystemProgram.programId,
       } as any)
+      .remainingAccounts(
+        buildInitClaimersRemainingAccounts(
+          dammV2Pool,
+          claimers,
+          program.programId,
+        ),
+      )
       .signers([payer])
       .rpc();
 
@@ -259,16 +285,16 @@ describe("dbc-swap:damm-v2", () => {
       false,
     );
     assert.deepEqual(initialInfo.claimerBps, [2000, 3000, 5000]);
-    assert.deepEqual(
-      initialInfo.claimedBase.map((n: anchor.BN) => n.toNumber()),
-      [0, 0, 0],
-    );
-    assert.deepEqual(
-      initialInfo.claimedQuote.map((n: anchor.BN) => n.toNumber()),
-      [0, 0, 0],
-    );
     assert.strictEqual(initialInfo.lastDistributed.toNumber(), 0);
     assert.strictEqual(initialInfo.lastClaimed.toNumber(), 0);
+
+    // Verify per-claimer state is initialized to zero
+    for (const claimer of claimers) {
+      const state = await fetchClaimerState(program, dammV2Pool, claimer);
+      assert.strictEqual(state.claimedBase.toNumber(), 0);
+      assert.strictEqual(state.claimedQuote.toNumber(), 0);
+      assert.isTrue(state.isEnabled);
+    }
 
     // Step 2: Swap + claimPositionFee via module
     await claimPositionFeeModule(
@@ -284,11 +310,7 @@ describe("dbc-swap:damm-v2", () => {
       false,
     );
 
-    // Step 3: Create ATAs for all 3 claimers and distribute fees
-    const baseTokenProgram = getTokenProgram(poolState.tokenAFlag);
-    const quoteTokenProgram = getTokenProgram(poolState.tokenBFlag);
-
-    const claimers = [payer.publicKey, user2.publicKey, user3.publicKey];
+    // Step 3: Create ATAs for all 3 claimers
     const baseATAs = claimers.map((c) =>
       getAssociatedTokenAddressSync(
         poolState.tokenAMint,
@@ -337,11 +359,6 @@ describe("dbc-swap:damm-v2", () => {
       await provider.connection.getTokenAccountBalance(quoteFeeVault);
     const quoteAmount = Number(quoteVaultBalanceBefore.value.amount);
 
-    const remainingAccounts = claimers.flatMap((_, i) => [
-      { pubkey: baseATAs[i], isSigner: false, isWritable: true },
-      { pubkey: quoteATAs[i], isSigner: false, isWritable: true },
-    ]);
-
     await distribute_fees(
       program,
       payer,
@@ -353,41 +370,69 @@ describe("dbc-swap:damm-v2", () => {
       feeClaimerPda,
       baseTokenProgram,
       quoteTokenProgram,
-      remainingAccounts,
+      buildDistributeFeesRemainingAccounts(
+        dammV2Pool,
+        claimers,
+        poolState.tokenAMint,
+        poolState.tokenBMint,
+        baseTokenProgram,
+        quoteTokenProgram,
+        program.programId,
+      ),
     );
 
-    // Step 4: Verify proportional payouts
+    // Step 4: Verify proportional payouts via ClaimerState
+    const payerExpected = Math.floor((quoteAmount * 2000) / 10000);
+    const user2Expected = Math.floor((quoteAmount * 3000) / 10000);
+    const user3Expected = quoteAmount - payerExpected - user2Expected;
+
+    const payerState1 = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      payer.publicKey,
+    );
+    const user2State1 = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      user2.publicKey,
+    );
+    const user3State1 = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      user3.publicKey,
+    );
+    assert.strictEqual(payerState1.claimedQuote.toNumber(), payerExpected);
+    assert.strictEqual(user2State1.claimedQuote.toNumber(), user2Expected);
+    assert.strictEqual(user3State1.claimedQuote.toNumber(), user3Expected);
+
+    // Step 4b: lastDistributed must be non-zero
     const pdaInfoRound1 = await fetchclaimerspdainfo(
       program,
       cpAmmPoolClaimersPda,
       false,
     );
-
-    const payerExpected = Math.floor((quoteAmount * 2000) / 10000);
-    const user2Expected = Math.floor((quoteAmount * 3000) / 10000);
-    const user3Expected = quoteAmount - payerExpected - user2Expected;
-
-    assert.strictEqual(pdaInfoRound1.claimedQuote[0].toNumber(), payerExpected);
-    assert.strictEqual(pdaInfoRound1.claimedQuote[1].toNumber(), user2Expected);
-    assert.strictEqual(pdaInfoRound1.claimedQuote[2].toNumber(), user3Expected);
-
-    // Step 4b: lastDistributed and lastClaimed must be non-zero
     assert.isAbove(pdaInfoRound1.lastDistributed.toNumber(), 0);
-    assert.isAbove(pdaInfoRound1.lastClaimed.toNumber(), 0);
 
     // Step 5: Update claimers to payer=50%, user2=30%, user3=20%
     await program.methods
-      .initializePoolClaimers(
-        [payer.publicKey, user2.publicKey, user3.publicKey],
-        [5000, 3000, 2000],
-        { dammV2: {} },
-      )
+      .initializePoolClaimers(claimers, [5000, 3000, 2000], { dammV2: {} })
       .accounts({
         deployer: payer.publicKey,
         pool: dammV2Pool,
+        baseMint: poolState.tokenAMint,
+        quoteMint: poolState.tokenBMint,
         poolClaimers: cpAmmPoolClaimersPda,
+        tokenBaseProgram: baseTokenProgram,
+        tokenQuoteProgram: quoteTokenProgram,
         systemProgram: SystemProgram.programId,
       } as any)
+      .remainingAccounts(
+        buildInitClaimersRemainingAccounts(
+          dammV2Pool,
+          claimers,
+          program.programId,
+        ),
+      )
       .signers([payer])
       .rpc();
 
@@ -440,40 +485,53 @@ describe("dbc-swap:damm-v2", () => {
       feeClaimerPda,
       baseTokenProgram,
       quoteTokenProgram,
-      remainingAccounts,
+      buildDistributeFeesRemainingAccounts(
+        dammV2Pool,
+        claimers,
+        poolState.tokenAMint,
+        poolState.tokenBMint,
+        baseTokenProgram,
+        quoteTokenProgram,
+        program.programId,
+      ),
     );
 
-    // Step 8: Verify updated proportions (claimedQuote reset when setPoolClaimers was re-called)
-    const pdaInfoRound2 = await fetchclaimerspdainfo(
+    // Step 8: Verify updated proportions via ClaimerState.
+    // ClaimerState is cumulative; initializePoolClaimers does not reset existing state PDAs.
+    const payerExpected2Round = Math.floor((quoteAmount2 * 5000) / 10000);
+    const user2Expected2Round = Math.floor((quoteAmount2 * 3000) / 10000);
+    const user3Expected2Round =
+      quoteAmount2 - payerExpected2Round - user2Expected2Round;
+
+    const payerExpected2 = payerExpected + payerExpected2Round;
+    const user2Expected2 = user2Expected + user2Expected2Round;
+    const user3Expected2 = user3Expected + user3Expected2Round;
+
+    const payerState2 = await fetchClaimerState(
       program,
-      cpAmmPoolClaimersPda,
-      false,
+      dammV2Pool,
+      payer.publicKey,
     );
+    const user2State2 = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      user2.publicKey,
+    );
+    const user3State2 = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      user3.publicKey,
+    );
+    assert.strictEqual(payerState2.claimedQuote.toNumber(), payerExpected2);
+    assert.strictEqual(user2State2.claimedQuote.toNumber(), user2Expected2);
+    assert.strictEqual(user3State2.claimedQuote.toNumber(), user3Expected2);
 
-    const payerExpected2 = Math.floor((quoteAmount2 * 5000) / 10000);
-    const user2Expected2 = Math.floor((quoteAmount2 * 3000) / 10000);
-    const user3Expected2 = quoteAmount2 - payerExpected2 - user2Expected2;
-
-    assert.strictEqual(
-      pdaInfoRound2.claimedQuote[0].toNumber(),
-      payerExpected2,
-    );
-    assert.strictEqual(
-      pdaInfoRound2.claimedQuote[1].toNumber(),
-      user2Expected2,
-    );
-    assert.strictEqual(
-      pdaInfoRound2.claimedQuote[2].toNumber(),
-      user3Expected2,
-    );
-
-    // Showcase: update_claimers_bps preserves past claimed history (unlike setPoolClaimers)
     // After step 7b distributeFees, the fee vault should be empty
     const vaultBalanceAfterRound2 =
       await provider.connection.getTokenAccountBalance(quoteFeeVault);
     assert.strictEqual(Number(vaultBalanceAfterRound2.value.amount), 0);
 
-    // Update BPS to 50% / 50% / 0% — only BPS changes, claimed history is untouched
+    // Update BPS to 50% / 50% / 0% — only BPS changes, ClaimerState history is untouched
     await program.methods
       .updateClaimersBps([5000, 5000, 0])
       .accounts({
@@ -484,31 +542,43 @@ describe("dbc-swap:damm-v2", () => {
       .signers([payer])
       .rpc();
 
-    // BPS is updated, but claimedQuote still reflects round-2 historical amounts
     const pdaInfoAfterBpsUpdate = await fetchclaimerspdainfo(
       program,
       cpAmmPoolClaimersPda,
       false,
     );
-
     assert.deepEqual(pdaInfoAfterBpsUpdate.claimerBps, [5000, 5000, 0]);
 
-    // Past claimed amounts are preserved — update_claimers_bps does NOT reset them
+    // Past claimed amounts in ClaimerState are preserved — updateClaimersBps does NOT reset them
+    const payerStateAfterBps = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      payer.publicKey,
+    );
+    const user2StateAfterBps = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      user2.publicKey,
+    );
+    const user3StateAfterBps = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      user3.publicKey,
+    );
     assert.strictEqual(
-      pdaInfoAfterBpsUpdate.claimedQuote[0].toNumber(),
+      payerStateAfterBps.claimedQuote.toNumber(),
       payerExpected2,
     );
     assert.strictEqual(
-      pdaInfoAfterBpsUpdate.claimedQuote[1].toNumber(),
+      user2StateAfterBps.claimedQuote.toNumber(),
       user2Expected2,
     );
     assert.strictEqual(
-      pdaInfoAfterBpsUpdate.claimedQuote[2].toNumber(),
+      user3StateAfterBps.claimedQuote.toNumber(),
       user3Expected2,
     );
 
     // Round 3: swap + claimPositionFee + distributeFees under the new 50/50/0 split.
-    // The DELTA between new and old claimedQuote must equal exactly the new BPS percentages.
     const user1Round3 = await createRandomKeyPair(12);
     await dammV2Swap(user1Round3, dammV2Pool, poolState, 1, false);
 
@@ -552,24 +622,41 @@ describe("dbc-swap:damm-v2", () => {
       feeClaimerPda,
       baseTokenProgram,
       quoteTokenProgram,
-      remainingAccounts,
-    );
-
-    const pdaInfoRound3 = await fetchclaimerspdainfo(
-      program,
-      cpAmmPoolClaimersPda,
-      false,
+      buildDistributeFeesRemainingAccounts(
+        dammV2Pool,
+        claimers,
+        poolState.tokenAMint,
+        poolState.tokenBMint,
+        baseTokenProgram,
+        quoteTokenProgram,
+        program.programId,
+      ),
     );
 
     // Delta = new cumulative claimed − previous cumulative claimed (preserved from round 2)
-    const payerRound3Delta =
-      pdaInfoRound3.claimedQuote[0].toNumber() - payerExpected2;
-    const user2Round3Delta =
-      pdaInfoRound3.claimedQuote[1].toNumber() - user2Expected2;
-    const user3Round3Delta =
-      pdaInfoRound3.claimedQuote[2].toNumber() - user3Expected2;
+    const payerState3 = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      payer.publicKey,
+    );
+    const user2State3 = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      user2.publicKey,
+    );
+    const user3State3 = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      user3.publicKey,
+    );
 
-    // Expected distribution under 50/50/0 — last claimer (user3, 0%) sweeps remainder
+    const payerRound3Delta =
+      payerState3.claimedQuote.toNumber() - payerExpected2;
+    const user2Round3Delta =
+      user2State3.claimedQuote.toNumber() - user2Expected2;
+    const user3Round3Delta =
+      user3State3.claimedQuote.toNumber() - user3Expected2;
+
     const payerExpected3 = Math.floor((quoteAmount3 * 5000) / 10000);
     const user2Expected3 = Math.floor((quoteAmount3 * 5000) / 10000);
     const user3Expected3 = quoteAmount3 - payerExpected3 - user2Expected3;
@@ -579,7 +666,7 @@ describe("dbc-swap:damm-v2", () => {
     assert.strictEqual(user3Round3Delta, user3Expected3);
   });
 
-  it.skip("test4: fee claimer captures 100% of fees with mixed locked/unlocked liquidity", async () => {
+  it("test4: fee claimer captures 100% of fees with mixed locked/unlocked liquidity", async () => {
     const payer = (provider.wallet as any).payer;
 
     // Pool: partner 10% permanently locked, 90% unlocked; creator 0%
@@ -604,15 +691,29 @@ describe("dbc-swap:damm-v2", () => {
       program.programId,
     );
 
+    const baseTokenProgram4 = getTokenProgram(poolState.tokenAFlag);
+    const quoteTokenProgram4 = getTokenProgram(poolState.tokenBFlag);
+
     // Register admin as sole 100% claimer
     await program.methods
       .initializePoolClaimers([payer.publicKey], [10_000], { dammV2: {} })
       .accounts({
         deployer: payer.publicKey,
         pool: dammV2Pool,
+        baseMint: poolState.tokenAMint,
+        quoteMint: poolState.tokenBMint,
         poolClaimers: cpAmmPoolClaimersPda,
+        tokenBaseProgram: baseTokenProgram4,
+        tokenQuoteProgram: quoteTokenProgram4,
         systemProgram: SystemProgram.programId,
       } as any)
+      .remainingAccounts(
+        buildInitClaimersRemainingAccounts(
+          dammV2Pool,
+          [payer.publicKey],
+          program.programId,
+        ),
+      )
       .signers([payer])
       .rpc();
 
@@ -622,11 +723,17 @@ describe("dbc-swap:damm-v2", () => {
       cpAmmPoolClaimersPda,
       false,
     );
+
     assert.deepEqual(initialInfo.claimerBps, [10_000]);
-    assert.strictEqual(initialInfo.claimedBase[0].toNumber(), 0);
-    assert.strictEqual(initialInfo.claimedQuote[0].toNumber(), 0);
     assert.strictEqual(initialInfo.lastDistributed.toNumber(), 0);
     assert.strictEqual(initialInfo.lastClaimed.toNumber(), 0);
+    const payerStateInit4 = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      payer.publicKey,
+    );
+    assert.strictEqual(payerStateInit4.claimedBase.toNumber(), 0);
+    assert.strictEqual(payerStateInit4.claimedQuote.toNumber(), 0);
 
     // Assert position has both unlocked (90%) and permanently locked (10%) liquidity
     const { unlocked, permLocked } = await getPositionInfo(
@@ -658,6 +765,7 @@ describe("dbc-swap:damm-v2", () => {
       feeClaimerPda,
       false,
     );
+    console.log("Hello3");
 
     // Read exact vault balance before distribution
     const quoteVaultBalance = await provider.connection.getTokenAccountBalance(
@@ -670,36 +778,33 @@ describe("dbc-swap:damm-v2", () => {
     );
 
     // Create admin payer ATAs
-    const baseTokenProgram = getTokenProgram(poolState.tokenAFlag);
-    const quoteTokenProgram = getTokenProgram(poolState.tokenBFlag);
-
-    const payerBaseAta = getAssociatedTokenAddressSync(
+    const payerBaseAta4 = getAssociatedTokenAddressSync(
       poolState.tokenAMint,
       payer.publicKey,
       false,
-      baseTokenProgram,
+      baseTokenProgram4,
     );
-    const payerQuoteAta = getAssociatedTokenAddressSync(
+    const payerQuoteAta4 = getAssociatedTokenAddressSync(
       poolState.tokenBMint,
       payer.publicKey,
       false,
-      quoteTokenProgram,
+      quoteTokenProgram4,
     );
 
     const createAtaTx = new anchor.web3.Transaction().add(
       createAssociatedTokenAccountIdempotentInstruction(
         payer.publicKey,
-        payerBaseAta,
+        payerBaseAta4,
         payer.publicKey,
         poolState.tokenAMint,
-        baseTokenProgram,
+        baseTokenProgram4,
       ),
       createAssociatedTokenAccountIdempotentInstruction(
         payer.publicKey,
-        payerQuoteAta,
+        payerQuoteAta4,
         payer.publicKey,
         poolState.tokenBMint,
-        quoteTokenProgram,
+        quoteTokenProgram4,
       ),
     );
     await sendAndConfirmTransaction(provider.connection, createAtaTx, [payer]);
@@ -714,17 +819,22 @@ describe("dbc-swap:damm-v2", () => {
       quoteFeeVault,
       poolState,
       feeClaimerPda,
-      baseTokenProgram,
-      quoteTokenProgram,
-      [
-        { pubkey: payerBaseAta, isSigner: false, isWritable: true },
-        { pubkey: payerQuoteAta, isSigner: false, isWritable: true },
-      ],
+      baseTokenProgram4,
+      quoteTokenProgram4,
+      buildDistributeFeesRemainingAccounts(
+        dammV2Pool,
+        [payer.publicKey],
+        poolState.tokenAMint,
+        poolState.tokenBMint,
+        baseTokenProgram4,
+        quoteTokenProgram4,
+        program.programId,
+      ),
     );
 
-    // Assert: admin received exactly 100% — not even 1 lamport less
+    // Assert: admin received exactly 100%
     const payerQuoteBalance = await provider.connection.getTokenAccountBalance(
-      payerQuoteAta,
+      payerQuoteAta4,
     );
     assert.strictEqual(
       Number(payerQuoteBalance.value.amount),
@@ -732,18 +842,19 @@ describe("dbc-swap:damm-v2", () => {
       `fee claimer must receive exactly 100% of fees (${quoteAmount} lamports) — not even 1 lamport less`,
     );
 
-    // Confirm PDA claimedQuote reflects the full amount
-    const finalInfo = await fetchclaimerspdainfo(
+    // Confirm ClaimerState claimedQuote reflects the full amount
+    const finalPayerState4 = await fetchClaimerState(
       program,
-      cpAmmPoolClaimersPda,
-      false,
+      dammV2Pool,
+      payer.publicKey,
     );
     assert.strictEqual(
-      finalInfo.claimedQuote[0].toNumber(),
+      finalPayerState4.claimedQuote.toNumber(),
       quoteAmount,
-      "PDA claimedQuote must equal the exact fee vault amount",
+      "ClaimerState claimedQuote must equal the exact fee vault amount",
     );
 
+    console.log("Hello5");
     // --- Part 2: Remove 10% of unlocked liquidity ---
 
     const cpAmmEventAuthority = deriveCpAmmEventAuthority(CP_AMM_PROGRAM_ID);
@@ -766,11 +877,11 @@ describe("dbc-swap:damm-v2", () => {
         .value.amount,
     );
     const baseBalanceBefore = Number(
-      (await provider.connection.getTokenAccountBalance(payerBaseAta)).value
+      (await provider.connection.getTokenAccountBalance(payerBaseAta4)).value
         .amount,
     );
     const quoteBalanceBefore = Number(
-      (await provider.connection.getTokenAccountBalance(payerQuoteAta)).value
+      (await provider.connection.getTokenAccountBalance(payerQuoteAta4)).value
         .amount,
     );
 
@@ -785,16 +896,16 @@ describe("dbc-swap:damm-v2", () => {
         poolAuthority: cpAmmPoolAuthority,
         pool: dammV2Pool,
         position,
-        tokenAAccount: payerBaseAta,
-        tokenBAccount: payerQuoteAta,
+        tokenAAccount: payerBaseAta4,
+        tokenBAccount: payerQuoteAta4,
         tokenAVault: poolState.tokenAVault,
         tokenBVault: poolState.tokenBVault,
         tokenAMint: poolState.tokenAMint,
         tokenBMint: poolState.tokenBMint,
         positionNftAccount,
         feeClaimer: feeClaimerPda,
-        tokenAProgram: baseTokenProgram,
-        tokenBProgram: quoteTokenProgram,
+        tokenAProgram: baseTokenProgram4,
+        tokenBProgram: quoteTokenProgram4,
         eventAuthority: cpAmmEventAuthority,
         cpAmmProgram: CP_AMM_PROGRAM_ID,
       } as any)
@@ -803,11 +914,11 @@ describe("dbc-swap:damm-v2", () => {
 
     // Admin received exactly the tokens that left the vault — no lamport lost
     const baseBalanceAfterPartial = Number(
-      (await provider.connection.getTokenAccountBalance(payerBaseAta)).value
+      (await provider.connection.getTokenAccountBalance(payerBaseAta4)).value
         .amount,
     );
     const quoteBalanceAfterPartial = Number(
-      (await provider.connection.getTokenAccountBalance(payerQuoteAta)).value
+      (await provider.connection.getTokenAccountBalance(payerQuoteAta4)).value
         .amount,
     );
     const vaultABalAfterPartial = Number(
@@ -854,6 +965,8 @@ describe("dbc-swap:damm-v2", () => {
       "admin token B balance must increase after partial removal",
     );
 
+    console.log("Hello9");
+
     // --- Part 3: Remove all remaining liquidity + NFT burned ---
 
     const nftCountBefore = (await fetchAllWalletNfts(feeClaimerPda.toBase58()))
@@ -866,16 +979,16 @@ describe("dbc-swap:damm-v2", () => {
         poolAuthority: cpAmmPoolAuthority,
         pool: dammV2Pool,
         position,
-        tokenAAccount: payerBaseAta,
-        tokenBAccount: payerQuoteAta,
+        tokenAAccount: payerBaseAta4,
+        tokenBAccount: payerQuoteAta4,
         tokenAVault: poolState.tokenAVault,
         tokenBVault: poolState.tokenBVault,
         tokenAMint: poolState.tokenAMint,
         tokenBMint: poolState.tokenBMint,
         positionNftAccount,
         feeClaimer: feeClaimerPda,
-        tokenAProgram: baseTokenProgram,
-        tokenBProgram: quoteTokenProgram,
+        tokenAProgram: baseTokenProgram4,
+        tokenBProgram: quoteTokenProgram4,
         eventAuthority: cpAmmEventAuthority,
         cpAmmProgram: CP_AMM_PROGRAM_ID,
       } as any)
@@ -883,11 +996,11 @@ describe("dbc-swap:damm-v2", () => {
       .rpc();
 
     const baseBalanceAfterFull = Number(
-      (await provider.connection.getTokenAccountBalance(payerBaseAta)).value
+      (await provider.connection.getTokenAccountBalance(payerBaseAta4)).value
         .amount,
     );
     const quoteBalanceAfterFull = Number(
-      (await provider.connection.getTokenAccountBalance(payerQuoteAta)).value
+      (await provider.connection.getTokenAccountBalance(payerQuoteAta4)).value
         .amount,
     );
     assert.isAbove(
@@ -912,7 +1025,7 @@ describe("dbc-swap:damm-v2", () => {
     );
   });
 
-  it.skip("test5: access control — only admin can initialize claimers, update bps, and remove liquidity", async () => {
+  it("test5: access control — only admin can initialize claimers, update bps, and remove liquidity", async () => {
     const payer = (provider.wallet as any).payer;
 
     // Pool: partner 10% permanently locked, 90% unlocked; creator 0%
@@ -938,15 +1051,29 @@ describe("dbc-swap:damm-v2", () => {
 
     const nonAdmin = await createRandomKeyPair(2);
 
+    const baseTokenProgram5 = getTokenProgram(poolState.tokenAFlag);
+    const quoteTokenProgram5 = getTokenProgram(poolState.tokenBFlag);
+
     // Step 1: Admin initializes poolClaimers PDA
     await program.methods
       .initializePoolClaimers([payer.publicKey], [10_000], { dammV2: {} })
       .accounts({
         deployer: payer.publicKey,
         pool: dammV2Pool,
+        baseMint: poolState.tokenAMint,
+        quoteMint: poolState.tokenBMint,
         poolClaimers: cpAmmPoolClaimersPda,
+        tokenBaseProgram: baseTokenProgram5,
+        tokenQuoteProgram: quoteTokenProgram5,
         systemProgram: SystemProgram.programId,
       } as any)
+      .remainingAccounts(
+        buildInitClaimersRemainingAccounts(
+          dammV2Pool,
+          [payer.publicKey],
+          program.programId,
+        ),
+      )
       .signers([payer])
       .rpc();
 
@@ -957,7 +1084,7 @@ describe("dbc-swap:damm-v2", () => {
     );
     assert.deepEqual(pdaInfo.claimerBps, [10_000]);
 
-    // Step 2: Non-admin tries to call setPoolClaimers — must fail
+    // Step 2: Non-admin tries to call initializePoolClaimers — must fail
     let threw = false;
     try {
       await program.methods
@@ -965,15 +1092,29 @@ describe("dbc-swap:damm-v2", () => {
         .accounts({
           deployer: nonAdmin.publicKey,
           pool: dammV2Pool,
+          baseMint: poolState.tokenAMint,
+          quoteMint: poolState.tokenBMint,
           poolClaimers: cpAmmPoolClaimersPda,
+          tokenBaseProgram: baseTokenProgram5,
+          tokenQuoteProgram: quoteTokenProgram5,
           systemProgram: SystemProgram.programId,
         } as any)
+        .remainingAccounts(
+          buildInitClaimersRemainingAccounts(
+            dammV2Pool,
+            [nonAdmin.publicKey],
+            program.programId,
+          ),
+        )
         .signers([nonAdmin])
         .rpc();
     } catch {
       threw = true;
     }
-    assert.isTrue(threw, "non-admin must not be able to call setPoolClaimers");
+    assert.isTrue(
+      threw,
+      "non-admin must not be able to call initializePoolClaimers",
+    );
 
     // Step 3: Admin updates BPS
     await program.methods
@@ -1014,62 +1155,59 @@ describe("dbc-swap:damm-v2", () => {
     );
 
     // Prepare ATAs for admin and non-admin
-    const baseTokenProgram = getTokenProgram(poolState.tokenAFlag);
-    const quoteTokenProgram = getTokenProgram(poolState.tokenBFlag);
-
-    const payerBaseAta = getAssociatedTokenAddressSync(
+    const payerBaseAta5 = getAssociatedTokenAddressSync(
       poolState.tokenAMint,
       payer.publicKey,
       false,
-      baseTokenProgram,
+      baseTokenProgram5,
     );
-    const payerQuoteAta = getAssociatedTokenAddressSync(
+    const payerQuoteAta5 = getAssociatedTokenAddressSync(
       poolState.tokenBMint,
       payer.publicKey,
       false,
-      quoteTokenProgram,
+      quoteTokenProgram5,
     );
     const nonAdminBaseAta = getAssociatedTokenAddressSync(
       poolState.tokenAMint,
       nonAdmin.publicKey,
       false,
-      baseTokenProgram,
+      baseTokenProgram5,
     );
     const nonAdminQuoteAta = getAssociatedTokenAddressSync(
       poolState.tokenBMint,
       nonAdmin.publicKey,
       false,
-      quoteTokenProgram,
+      quoteTokenProgram5,
     );
 
     const createAtaTx = new anchor.web3.Transaction().add(
       createAssociatedTokenAccountIdempotentInstruction(
         payer.publicKey,
-        payerBaseAta,
+        payerBaseAta5,
         payer.publicKey,
         poolState.tokenAMint,
-        baseTokenProgram,
+        baseTokenProgram5,
       ),
       createAssociatedTokenAccountIdempotentInstruction(
         payer.publicKey,
-        payerQuoteAta,
+        payerQuoteAta5,
         payer.publicKey,
         poolState.tokenBMint,
-        quoteTokenProgram,
+        quoteTokenProgram5,
       ),
       createAssociatedTokenAccountIdempotentInstruction(
         payer.publicKey,
         nonAdminBaseAta,
         nonAdmin.publicKey,
         poolState.tokenAMint,
-        baseTokenProgram,
+        baseTokenProgram5,
       ),
       createAssociatedTokenAccountIdempotentInstruction(
         payer.publicKey,
         nonAdminQuoteAta,
         nonAdmin.publicKey,
         poolState.tokenBMint,
-        quoteTokenProgram,
+        quoteTokenProgram5,
       ),
     );
     await sendAndConfirmTransaction(provider.connection, createAtaTx, [payer]);
@@ -1095,16 +1233,16 @@ describe("dbc-swap:damm-v2", () => {
         poolAuthority: cpAmmPoolAuthority,
         pool: dammV2Pool,
         position,
-        tokenAAccount: payerBaseAta,
-        tokenBAccount: payerQuoteAta,
+        tokenAAccount: payerBaseAta5,
+        tokenBAccount: payerQuoteAta5,
         tokenAVault: poolState.tokenAVault,
         tokenBVault: poolState.tokenBVault,
         tokenAMint: poolState.tokenAMint,
         tokenBMint: poolState.tokenBMint,
         positionNftAccount,
         feeClaimer: feeClaimerPda,
-        tokenAProgram: baseTokenProgram,
-        tokenBProgram: quoteTokenProgram,
+        tokenAProgram: baseTokenProgram5,
+        tokenBProgram: quoteTokenProgram5,
         eventAuthority: cpAmmEventAuthority,
         cpAmmProgram: CP_AMM_PROGRAM_ID,
       } as any)
@@ -1133,8 +1271,8 @@ describe("dbc-swap:damm-v2", () => {
           tokenBMint: poolState.tokenBMint,
           positionNftAccount,
           feeClaimer: feeClaimerPda,
-          tokenAProgram: baseTokenProgram,
-          tokenBProgram: quoteTokenProgram,
+          tokenAProgram: baseTokenProgram5,
+          tokenBProgram: quoteTokenProgram5,
           eventAuthority: cpAmmEventAuthority,
           cpAmmProgram: CP_AMM_PROGRAM_ID,
         } as any)
@@ -1163,8 +1301,8 @@ describe("dbc-swap:damm-v2", () => {
           tokenBMint: poolState.tokenBMint,
           positionNftAccount,
           feeClaimer: feeClaimerPda,
-          tokenAProgram: baseTokenProgram,
-          tokenBProgram: quoteTokenProgram,
+          tokenAProgram: baseTokenProgram5,
+          tokenBProgram: quoteTokenProgram5,
           eventAuthority: cpAmmEventAuthority,
           cpAmmProgram: CP_AMM_PROGRAM_ID,
         } as any)
@@ -1186,16 +1324,16 @@ describe("dbc-swap:damm-v2", () => {
         poolAuthority: cpAmmPoolAuthority,
         pool: dammV2Pool,
         position,
-        tokenAAccount: payerBaseAta,
-        tokenBAccount: payerQuoteAta,
+        tokenAAccount: payerBaseAta5,
+        tokenBAccount: payerQuoteAta5,
         tokenAVault: poolState.tokenAVault,
         tokenBVault: poolState.tokenBVault,
         tokenAMint: poolState.tokenAMint,
         tokenBMint: poolState.tokenBMint,
         positionNftAccount,
         feeClaimer: feeClaimerPda,
-        tokenAProgram: baseTokenProgram,
-        tokenBProgram: quoteTokenProgram,
+        tokenAProgram: baseTokenProgram5,
+        tokenBProgram: quoteTokenProgram5,
         eventAuthority: cpAmmEventAuthority,
         cpAmmProgram: CP_AMM_PROGRAM_ID,
       } as any)

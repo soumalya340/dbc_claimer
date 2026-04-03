@@ -7,6 +7,7 @@ use crate::events::PoolClaimersSet;
 use crate::global_state::{ClaimerState, PoolClaimers, PoolState};
 use anchor_lang::prelude::*;
 use anchor_spl::token::spl_token::solana_program::program_pack::Pack;
+use anchor_spl::token_2022::spl_token_2022;
 use anchor_spl::token_interface::{Mint, TokenInterface};
 
 /// Remaining accounts per claimer (in order):
@@ -162,7 +163,7 @@ pub fn handle<'info>(
 
             // Step 2: initialize the token account fields (mint, authority)
             anchor_lang::solana_program::program::invoke_signed(
-                &anchor_spl::token::spl_token::instruction::initialize_account3(
+                &spl_token_2022::instruction::initialize_account3(
                     &token_base_program_key,
                     &expected_base_vault,
                     &base_mint_key,
@@ -221,7 +222,7 @@ pub fn handle<'info>(
 
             // Step 2: initialize the token account fields (mint, authority)
             anchor_lang::solana_program::program::invoke_signed(
-                &anchor_spl::token::spl_token::instruction::initialize_account3(
+                &spl_token_2022::instruction::initialize_account3(
                     &token_quote_program_key,
                     &expected_quote_vault,
                     &quote_mint_key,

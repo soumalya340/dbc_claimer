@@ -1,5 +1,14 @@
 import { PublicKey } from "@solana/web3.js";
-import { DBC_PROGRAM_ID } from "./helpers";
+
+export const DBC_PROGRAM_ID = new PublicKey(
+  "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+);
+export const CP_AMM_PROGRAM_ID = new PublicKey(
+  "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
+);
+export const WSOL_MINT = new PublicKey(
+  "So11111111111111111111111111111111111111112",
+);
 
 export function deriveCpAmmFeeVaults(
   pool: PublicKey, //  Pool can be DBC or DAMMv2
@@ -56,6 +65,42 @@ export const [dbcEventAuthority] = PublicKey.findProgramAddressSync(
   [Buffer.from("__event_authority")],
   DBC_PROGRAM_ID,
 );
+
+export function deriveClaimerStatePda(
+  pool: PublicKey,
+  claimer: PublicKey,
+  programId: PublicKey,
+): PublicKey {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("claimer_state"), pool.toBuffer(), claimer.toBuffer()],
+    programId,
+  );
+  return pda;
+}
+
+export function deriveClaimerPendingBaseVault(
+  pool: PublicKey,
+  claimer: PublicKey,
+  programId: PublicKey,
+): PublicKey {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("claimer_pending_base"), pool.toBuffer(), claimer.toBuffer()],
+    programId,
+  );
+  return pda;
+}
+
+export function deriveClaimerPendingQuoteVault(
+  pool: PublicKey,
+  claimer: PublicKey,
+  programId: PublicKey,
+): PublicKey {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("claimer_pending_quote"), pool.toBuffer(), claimer.toBuffer()],
+    programId,
+  );
+  return pda;
+}
 
 export function deriveAllPdas(
   programId: PublicKey,
