@@ -6,15 +6,11 @@ mod distribute_fees;
 mod err;
 mod events;
 mod global_state;
-mod set_pool_claimers;
-mod update_claimers_bps;
 
 use crate::claimers_state::*;
 use crate::damm_v2_endpoints::*;
 use crate::dbc_endpoints::*;
 use crate::global_state::PoolState;
-use crate::set_pool_claimers::*;
-use crate::update_claimers_bps::*;
 use anchor_lang::prelude::*;
 use damm_v2::cp_amm;
 use distribute_fees::*;
