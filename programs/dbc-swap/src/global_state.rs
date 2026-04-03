@@ -36,8 +36,6 @@ pub struct ClaimerState {
     pub pool: Pubkey,
     pub claimer: Pubkey,
     pub is_enabled: bool,
-    pub pending_base: u64,
-    pub pending_quote: u64,
     pub claimed_base: u64,
     pub claimed_quote: u64,
     pub bump: u8,

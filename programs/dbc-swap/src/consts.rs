@@ -1,6 +1,6 @@
 use anchor_lang::prelude::Pubkey;
 pub const ADMIN_ADDRESS: Pubkey =
-    anchor_lang::solana_program::pubkey!("ABwFt9iF2sUrffC9SxeCsuGd1hB78GU6u7x7VgpqQDka");
+    anchor_lang::solana_program::pubkey!("cyaibXfQvCC4qKDYNguU4mXryhKjSkszPWkd56KFkrF");
 
 pub const LIQUIDITY_REMOVAL_AUTHORITY: Pubkey =
     anchor_lang::solana_program::pubkey!("cyaibXfQvCC4qKDYNguU4mXryhKjSkszPWkd56KFkrF");
@@ -24,5 +24,8 @@ pub const POOL_CLAIMERS_SEED: &[u8] = b"pool_claimers";
 /// Per-pool, per-claimer state tracking.
 /// Seeds: [b"claimer_state", pool, claimer]
 pub const CLAIMER_STATE_SEED: &[u8] = b"claimer_state";
+
+pub const CLAIMER_PENDING_BASE_SEED: &[u8] = b"claimer_pending_base";
+pub const CLAIMER_PENDING_QUOTE_SEED: &[u8] = b"claimer_pending_quote";
 
 pub const MAX_CLAIMERS: usize = 5;

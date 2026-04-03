@@ -33,13 +33,13 @@ pub mod dbc_swap {
     /// a specific pool. Only callable by DEPLOYER_ADDRESS.
     /// Resets all claimed amounts to zero on each call.
     /// `pool_state` must be `Dbc` or `DammV2` — determines which fee path applies.
-    pub fn set_pool_claimers<'info>(
-        ctx: Context<'_, '_, '_, 'info, SetPoolClaimers<'info>>,
+    pub fn initialize_pool_claimers<'info>(
+        ctx: Context<'_, '_, '_, 'info, InitializePoolClaimers<'info>>,
         claimer_addresses: Vec<Pubkey>,
         claimer_bps: Vec<u16>,
         pool_state: PoolState,
     ) -> Result<()> {
-        set_pool_claimers::handle(ctx, claimer_addresses, claimer_bps, pool_state)
+        initialize_pool_claimers::handle(ctx, claimer_addresses, claimer_bps, pool_state)
     }
 
     /// Admin-only — updates only the BPS shares of the existing claimer list

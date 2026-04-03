@@ -1,4 +1,7 @@
-use crate::consts::{CLAIMER_STATE_SEED, FEE_CLAIMER_SEED, FEE_VAULT_SEED, POOL_CLAIMERS_SEED};
+use crate::consts::{
+    CLAIMER_PENDING_BASE_SEED, CLAIMER_PENDING_QUOTE_SEED, CLAIMER_STATE_SEED, FEE_CLAIMER_SEED,
+    FEE_VAULT_SEED, POOL_CLAIMERS_SEED,
+};
 use crate::err::DbcSwapError;
 use crate::events::FeesDistributedDammV2;
 use crate::global_state::{ClaimerState, PoolClaimers};
@@ -8,12 +11,13 @@ use anchor_spl::token_interface::{
     transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
 
+/// Remaining accounts per claimer (5 total):
+///   [claimer_state_pda, pending_base_vault, pending_quote_vault, claimer_base_ata, claimer_quote_ata]
 pub fn handle<'info>(ctx: Context<'_, '_, 'info, 'info, DistributeFees<'info>>) -> Result<()> {
     let num_claimers = ctx.accounts.pool_claimers.claimer_addresses.len();
 
-    // 3 accounts per claimer: state_pda + base_ata + quote_ata
     require!(
-        ctx.remaining_accounts.len() == num_claimers * 3,
+        ctx.remaining_accounts.len() == num_claimers * 5,
         DbcSwapError::ClaimerLengthMismatch
     );
 
@@ -24,8 +28,8 @@ pub fn handle<'info>(ctx: Context<'_, '_, 'info, 'info, DistributeFees<'info>>) 
         return Ok(());
     }
 
-    let bump = ctx.bumps.fee_claimer;
-    let signer_seeds: &[&[&[u8]]] = &[&[FEE_CLAIMER_SEED, &[bump]]];
+    let fee_claimer_bump = ctx.bumps.fee_claimer;
+    let fee_claimer_seeds: &[&[&[u8]]] = &[&[FEE_CLAIMER_SEED, &[fee_claimer_bump]]];
 
     let pool_key = ctx.accounts.pool.key();
     let base_mint_key = ctx.accounts.base_mint.key();
@@ -45,21 +49,52 @@ pub fn handle<'info>(ctx: Context<'_, '_, 'info, 'info, DistributeFees<'info>>) 
         let claimer_addr = claimer_addresses[i];
         let bps = claimer_bps[i] as u64;
 
+        let state_info = &ctx.remaining_accounts[i * 5];
+        let pending_base_info = &ctx.remaining_accounts[i * 5 + 1];
+        let pending_quote_info = &ctx.remaining_accounts[i * 5 + 2];
+        let claimer_base_ata_info = &ctx.remaining_accounts[i * 5 + 3];
+        let claimer_quote_ata_info = &ctx.remaining_accounts[i * 5 + 4];
+
         // --- Validate ClaimerState PDA ---
-        let state_account_info = &ctx.remaining_accounts[i * 3];
         let (expected_state_pda, _) = Pubkey::find_program_address(
             &[CLAIMER_STATE_SEED, pool_key.as_ref(), claimer_addr.as_ref()],
             ctx.program_id,
         );
         require!(
-            state_account_info.key() == expected_state_pda,
+            state_info.key() == expected_state_pda,
             DbcSwapError::InvalidClaimerStatePda
         );
 
-        // Deserialize ClaimerState
-        let mut state: Account<ClaimerState> = Account::try_from(state_account_info)?;
+        // --- Validate pending vaults ---
+        let (expected_pending_base, _) = Pubkey::find_program_address(
+            &[
+                CLAIMER_PENDING_BASE_SEED,
+                pool_key.as_ref(),
+                claimer_addr.as_ref(),
+            ],
+            ctx.program_id,
+        );
+        require!(
+            pending_base_info.key() == expected_pending_base,
+            DbcSwapError::InvalidClaimerStatePda
+        );
 
-        // --- Compute this claimer's share ---
+        let (expected_pending_quote, _) = Pubkey::find_program_address(
+            &[
+                CLAIMER_PENDING_QUOTE_SEED,
+                pool_key.as_ref(),
+                claimer_addr.as_ref(),
+            ],
+            ctx.program_id,
+        );
+        require!(
+            pending_quote_info.key() == expected_pending_quote,
+            DbcSwapError::InvalidClaimerStatePda
+        );
+
+        let mut state: Account<ClaimerState> = Account::try_from(state_info)?;
+
+        // --- Compute share ---
         let base_amount = if i == num_claimers - 1 {
             base_vault_balance.saturating_sub(base_distributed)
         } else {
@@ -68,7 +103,6 @@ pub fn handle<'info>(ctx: Context<'_, '_, 'info, 'info, DistributeFees<'info>>) 
                 .and_then(|v| v.checked_div(10_000))
                 .unwrap_or(0)
         };
-
         let quote_amount = if i == num_claimers - 1 {
             quote_vault_balance.saturating_sub(quote_distributed)
         } else {
@@ -79,8 +113,7 @@ pub fn handle<'info>(ctx: Context<'_, '_, 'info, 'info, DistributeFees<'info>>) 
         };
 
         if state.is_enabled {
-            // --- Validate ATAs ---
-            let claimer_base_ata_info = &ctx.remaining_accounts[i * 3 + 1];
+            // Validate ATAs
             let expected_base_ata = get_associated_token_address_with_program_id(
                 &claimer_addr,
                 &base_mint_key,
@@ -90,8 +123,6 @@ pub fn handle<'info>(ctx: Context<'_, '_, 'info, 'info, DistributeFees<'info>>) 
                 claimer_base_ata_info.key() == expected_base_ata,
                 DbcSwapError::InvalidClaimerAta
             );
-
-            let claimer_quote_ata_info = &ctx.remaining_accounts[i * 3 + 2];
             let expected_quote_ata = get_associated_token_address_with_program_id(
                 &claimer_addr,
                 &quote_mint_key,
@@ -102,15 +133,8 @@ pub fn handle<'info>(ctx: Context<'_, '_, 'info, 'info, DistributeFees<'info>>) 
                 DbcSwapError::InvalidClaimerAta
             );
 
-            // Sweep any previously parked pending amounts in the same pass
-            let total_base = base_amount
-                .checked_add(state.pending_base)
-                .unwrap_or(base_amount);
-            let total_quote = quote_amount
-                .checked_add(state.pending_quote)
-                .unwrap_or(quote_amount);
-
-            if total_base > 0 {
+            // Transfer current share from fee vault → ATA
+            if base_amount > 0 {
                 transfer_checked(
                     CpiContext::new_with_signer(
                         ctx.accounts.token_base_program.to_account_info(),
@@ -120,17 +144,16 @@ pub fn handle<'info>(ctx: Context<'_, '_, 'info, 'info, DistributeFees<'info>>) 
                             to: claimer_base_ata_info.to_account_info(),
                             authority: ctx.accounts.fee_claimer.to_account_info(),
                         },
-                        signer_seeds,
+                        fee_claimer_seeds,
                     ),
-                    total_base,
+                    base_amount,
                     base_decimals,
                 )?;
-                state.claimed_base = state.claimed_base.checked_add(total_base).unwrap();
-                state.pending_base = 0;
+                state.claimed_base = state.claimed_base.checked_add(base_amount).unwrap();
                 base_distributed = base_distributed.checked_add(base_amount).unwrap();
             }
 
-            if total_quote > 0 {
+            if quote_amount > 0 {
                 transfer_checked(
                     CpiContext::new_with_signer(
                         ctx.accounts.token_quote_program.to_account_info(),
@@ -140,25 +163,54 @@ pub fn handle<'info>(ctx: Context<'_, '_, 'info, 'info, DistributeFees<'info>>) 
                             to: claimer_quote_ata_info.to_account_info(),
                             authority: ctx.accounts.fee_claimer.to_account_info(),
                         },
-                        signer_seeds,
+                        fee_claimer_seeds,
                     ),
-                    total_quote,
+                    quote_amount,
                     quote_decimals,
                 )?;
-                state.claimed_quote = state.claimed_quote.checked_add(total_quote).unwrap();
-                state.pending_quote = 0;
+                state.claimed_quote = state.claimed_quote.checked_add(quote_amount).unwrap();
                 quote_distributed = quote_distributed.checked_add(quote_amount).unwrap();
             }
         } else {
-            // Disabled — park funds in ClaimerState, no vault transfer
-            state.pending_base = state.pending_base.checked_add(base_amount).unwrap();
-            state.pending_quote = state.pending_quote.checked_add(quote_amount).unwrap();
-            // Still count toward distributed so last-claimer math stays consistent
-            base_distributed = base_distributed.checked_add(base_amount).unwrap();
-            quote_distributed = quote_distributed.checked_add(quote_amount).unwrap();
+            // Disabled — park into claimer's own pending vaults
+            // fee_claimer signs for fee vault → pending vault transfer
+            if base_amount > 0 {
+                transfer_checked(
+                    CpiContext::new_with_signer(
+                        ctx.accounts.token_base_program.to_account_info(),
+                        TransferChecked {
+                            from: ctx.accounts.base_fee_vault.to_account_info(),
+                            mint: ctx.accounts.base_mint.to_account_info(),
+                            to: pending_base_info.to_account_info(),
+                            authority: ctx.accounts.fee_claimer.to_account_info(),
+                        },
+                        fee_claimer_seeds,
+                    ),
+                    base_amount,
+                    base_decimals,
+                )?;
+                base_distributed = base_distributed.checked_add(base_amount).unwrap();
+            }
+
+            if quote_amount > 0 {
+                transfer_checked(
+                    CpiContext::new_with_signer(
+                        ctx.accounts.token_quote_program.to_account_info(),
+                        TransferChecked {
+                            from: ctx.accounts.quote_fee_vault.to_account_info(),
+                            mint: ctx.accounts.quote_mint.to_account_info(),
+                            to: pending_quote_info.to_account_info(),
+                            authority: ctx.accounts.fee_claimer.to_account_info(),
+                        },
+                        fee_claimer_seeds,
+                    ),
+                    quote_amount,
+                    quote_decimals,
+                )?;
+                quote_distributed = quote_distributed.checked_add(quote_amount).unwrap();
+            }
         }
 
-        // Persist ClaimerState changes
         state.exit(ctx.program_id)?;
     }
 
@@ -213,13 +265,9 @@ pub struct DistributeFees<'info> {
     pub base_mint: InterfaceAccount<'info, Mint>,
     pub quote_mint: InterfaceAccount<'info, Mint>,
 
-    #[account(
-        seeds = [FEE_CLAIMER_SEED],
-        bump,
-    )]
+    #[account(seeds = [FEE_CLAIMER_SEED], bump)]
     pub fee_claimer: SystemAccount<'info>,
 
     pub token_base_program: Interface<'info, TokenInterface>,
     pub token_quote_program: Interface<'info, TokenInterface>,
-    // ClaimerState PDAs + ATAs in remaining_accounts [state, base_ata, quote_ata] per claimer
 }
