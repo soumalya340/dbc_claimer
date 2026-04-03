@@ -20,6 +20,9 @@ import {
   derivePoolClaimersPda,
   deriveCpAmmFeeVaults,
   deriveCpAmmEventAuthority,
+  deriveClaimerStatePda,
+  deriveClaimerPendingBaseVault,
+  deriveClaimerPendingQuoteVault,
 } from "./utils/constant";
 import {
   connection,
@@ -1339,5 +1342,305 @@ describe("dbc-swap:damm-v2", () => {
       } as any)
       .signers([payer])
       .rpc();
+  });
+
+  it("test6: disabled claimer → pending vaults; admin sweeps to arbitrary recipient", async () => {
+    const payer = (provider.wallet as any).payer;
+
+    // Step 1: Fresh pool via DBC (default migration path — enough quote for migration)
+    const { secondPositionNftMint } = await setupPoolAndMigrate(
+      payer,
+      feeClaimerPda,
+    );
+
+    const cpAmm = new CpAmm(connection);
+    const position = derivePositionAddress(secondPositionNftMint);
+    const positionState = await cpAmm.fetchPositionState(position);
+    const dammV2Pool = positionState.pool;
+    const poolState = await cpAmm.fetchPoolState(dammV2Pool);
+
+    const cpAmmPoolClaimersPda = derivePoolClaimersPda(
+      dammV2Pool,
+      program.programId,
+    );
+
+    const baseTp6 = getTokenProgram(poolState.tokenAFlag);
+    const quoteTp6 = getTokenProgram(poolState.tokenBFlag);
+
+    await program.methods
+      .initializePoolClaimers([payer.publicKey], [10_000], { dammV2: {} })
+      .accounts({
+        deployer: payer.publicKey,
+        pool: dammV2Pool,
+        baseMint: poolState.tokenAMint,
+        quoteMint: poolState.tokenBMint,
+        poolClaimers: cpAmmPoolClaimersPda,
+        tokenBaseProgram: baseTp6,
+        tokenQuoteProgram: quoteTp6,
+        systemProgram: SystemProgram.programId,
+      } as any)
+      .remainingAccounts(
+        buildInitClaimersRemainingAccounts(
+          dammV2Pool,
+          [payer.publicKey],
+          program.programId,
+        ),
+      )
+      .signers([payer])
+      .rpc();
+
+    await claimPositionFeeModule(
+      payer,
+      dammV2Pool,
+      poolState,
+      1,
+      position,
+      secondPositionNftMint,
+      cpAmmPoolClaimersPda,
+      program,
+      feeClaimerPda,
+      false,
+    );
+
+    const { baseFeeVault, quoteFeeVault } = deriveCpAmmFeeVaults(
+      dammV2Pool,
+      poolState.tokenAMint,
+      poolState.tokenBMint,
+      program.programId,
+    );
+
+    const quoteVaultBefore = Number(
+      (await provider.connection.getTokenAccountBalance(quoteFeeVault)).value
+        .amount,
+    );
+    const baseVaultBefore = Number(
+      (await provider.connection.getTokenAccountBalance(baseFeeVault)).value
+        .amount,
+    );
+
+    assert.isTrue(
+      quoteVaultBefore > 0 || baseVaultBefore > 0,
+      "fee vaults should hold tokens after swap + claim_position_fee",
+    );
+
+    // Step 2: Admin disables the sole claimer — next distribute parks into pending vaults
+    const claimerStatePda = deriveClaimerStatePda(
+      dammV2Pool,
+      payer.publicKey,
+      program.programId,
+    );
+
+    await program.methods
+      .setClaimerEnabled(false)
+      .accounts({
+        admin: payer.publicKey,
+        pool: dammV2Pool,
+        claimer: payer.publicKey,
+        claimerState: claimerStatePda,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    const payerBaseAta6 = getAssociatedTokenAddressSync(
+      poolState.tokenAMint,
+      payer.publicKey,
+      false,
+      baseTp6,
+    );
+    const payerQuoteAta6 = getAssociatedTokenAddressSync(
+      poolState.tokenBMint,
+      payer.publicKey,
+      false,
+      quoteTp6,
+    );
+
+    const createAtaTx6 = new anchor.web3.Transaction().add(
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        payerBaseAta6,
+        payer.publicKey,
+        poolState.tokenAMint,
+        baseTp6,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        payerQuoteAta6,
+        payer.publicKey,
+        poolState.tokenBMint,
+        quoteTp6,
+      ),
+    );
+    await sendAndConfirmTransaction(provider.connection, createAtaTx6, [payer]);
+
+    const distributeRem6 = buildDistributeFeesRemainingAccounts(
+      dammV2Pool,
+      [payer.publicKey],
+      poolState.tokenAMint,
+      poolState.tokenBMint,
+      baseTp6,
+      quoteTp6,
+      program.programId,
+    );
+
+    // Step 3: Distribute — disabled claimer share goes to pending_* (not payer ATAs)
+    await distribute_fees(
+      program,
+      payer,
+      dammV2Pool,
+      cpAmmPoolClaimersPda,
+      baseFeeVault,
+      quoteFeeVault,
+      poolState,
+      feeClaimerPda,
+      baseTp6,
+      quoteTp6,
+      distributeRem6,
+    );
+
+    // Step 4: Program fee vaults empty; pending vaults hold exact former balances
+    const quoteVaultAfter = Number(
+      (await provider.connection.getTokenAccountBalance(quoteFeeVault)).value
+        .amount,
+    );
+    const baseVaultAfter = Number(
+      (await provider.connection.getTokenAccountBalance(baseFeeVault)).value
+        .amount,
+    );
+
+    assert.strictEqual(
+      quoteVaultAfter,
+      0,
+      "quote fee vault must be exactly zero after distribute with disabled claimer",
+    );
+    assert.strictEqual(
+      baseVaultAfter,
+      0,
+      "base fee vault must be exactly zero after distribute with disabled claimer",
+    );
+
+    const pendingQuotePda = deriveClaimerPendingQuoteVault(
+      dammV2Pool,
+      payer.publicKey,
+      program.programId,
+    );
+    const pendingBasePda = deriveClaimerPendingBaseVault(
+      dammV2Pool,
+      payer.publicKey,
+      program.programId,
+    );
+
+    const pendingQuoteAfter = Number(
+      (await provider.connection.getTokenAccountBalance(pendingQuotePda)).value
+        .amount,
+    );
+    const pendingBaseAfter = Number(
+      (await provider.connection.getTokenAccountBalance(pendingBasePda)).value
+        .amount,
+    );
+
+    assert.strictEqual(
+      pendingQuoteAfter,
+      quoteVaultBefore,
+      "pending quote vault must equal pre-distribute quote fee vault balance",
+    );
+    assert.strictEqual(
+      pendingBaseAfter,
+      baseVaultBefore,
+      "pending base vault must equal pre-distribute base fee vault balance",
+    );
+
+    // Step 5: Sweep to a random wallet (not the registered claimer)
+    const sweepRecipient = await createRandomKeyPair(5);
+    assert.notStrictEqual(
+      sweepRecipient.publicKey.toBase58(),
+      payer.publicKey.toBase58(),
+      "sanity: sweep recipient must differ from claimer",
+    );
+
+    const destBaseAta = getAssociatedTokenAddressSync(
+      poolState.tokenAMint,
+      sweepRecipient.publicKey,
+      false,
+      baseTp6,
+    );
+    const destQuoteAta = getAssociatedTokenAddressSync(
+      poolState.tokenBMint,
+      sweepRecipient.publicKey,
+      false,
+      quoteTp6,
+    );
+
+    const createDestAtaTx = new anchor.web3.Transaction().add(
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        destBaseAta,
+        sweepRecipient.publicKey,
+        poolState.tokenAMint,
+        baseTp6,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        destQuoteAta,
+        sweepRecipient.publicKey,
+        poolState.tokenBMint,
+        quoteTp6,
+      ),
+    );
+    await sendAndConfirmTransaction(provider.connection, createDestAtaTx, [
+      payer,
+    ]);
+
+    await program.methods
+      .adminSweepClaimer()
+      .accounts({
+        admin: payer.publicKey,
+        pool: dammV2Pool,
+        claimer: payer.publicKey,
+        claimerState: claimerStatePda,
+        claimerPendingBaseVault: pendingBasePda,
+        claimerPendingQuoteVault: pendingQuotePda,
+        baseMint: poolState.tokenAMint,
+        quoteMint: poolState.tokenBMint,
+        destinationBaseAta: destBaseAta,
+        destinationQuoteAta: destQuoteAta,
+        tokenBaseProgram: baseTp6,
+        tokenQuoteProgram: quoteTp6,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    const destQuoteBal = Number(
+      (await provider.connection.getTokenAccountBalance(destQuoteAta)).value
+        .amount,
+    );
+    const destBaseBal = Number(
+      (await provider.connection.getTokenAccountBalance(destBaseAta)).value
+        .amount,
+    );
+
+    assert.strictEqual(destQuoteBal, quoteVaultBefore);
+    assert.strictEqual(destBaseBal, baseVaultBefore);
+
+    assert.strictEqual(
+      Number(
+        (await provider.connection.getTokenAccountBalance(pendingQuotePda))
+          .value.amount,
+      ),
+      0,
+    );
+    assert.strictEqual(
+      Number(
+        (await provider.connection.getTokenAccountBalance(pendingBasePda)).value
+          .amount,
+      ),
+      0,
+    );
+
+    const stateAfter = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      payer.publicKey,
+    );
+    assert.isFalse(stateAfter.isEnabled);
   });
 });
