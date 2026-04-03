@@ -1,6 +1,6 @@
 use anchor_lang::prelude::Pubkey;
 pub const ADMIN_ADDRESS: Pubkey =
-    anchor_lang::solana_program::pubkey!("cyaibXfQvCC4qKDYNguU4mXryhKjSkszPWkd56KFkrF");
+    anchor_lang::solana_program::pubkey!("ABwFt9iF2sUrffC9SxeCsuGd1hB78GU6u7x7VgpqQDka");
 
 pub const LIQUIDITY_REMOVAL_AUTHORITY: Pubkey =
     anchor_lang::solana_program::pubkey!("cyaibXfQvCC4qKDYNguU4mXryhKjSkszPWkd56KFkrF");
@@ -20,5 +20,9 @@ pub const FEE_VAULT_SEED: &[u8] = b"fee_vault";
 /// Stores up to 5 claimer wallets, their BPS splits, and running totals.
 /// Seeds: [b"pool_claimers", pool]
 pub const POOL_CLAIMERS_SEED: &[u8] = b"pool_claimers";
+
+/// Per-pool, per-claimer state tracking.
+/// Seeds: [b"claimer_state", pool, claimer]
+pub const CLAIMER_STATE_SEED: &[u8] = b"claimer_state";
 
 pub const MAX_CLAIMERS: usize = 5;

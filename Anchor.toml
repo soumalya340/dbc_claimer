@@ -12,7 +12,7 @@ dbc_swap = "2VgCjezWK4kHxoute1Jy986AXVPvSkwquPX5VBVwQMzV"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "https://api.mainnet.solana.com"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

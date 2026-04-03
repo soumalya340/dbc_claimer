@@ -26,6 +26,8 @@ pub fn handle(ctx: Context<UpdateClaimersBps>, new_bps: Vec<u16>) -> Result<()> 
 
     let pc = &mut ctx.accounts.pool_claimers;
 
+    require!(new_bps.len() <= 5, DbcSwapError::TooManyClaimers);
+
     require!(
         new_bps.len() == pc.claimer_addresses.len(),
         DbcSwapError::ClaimerLengthMismatch

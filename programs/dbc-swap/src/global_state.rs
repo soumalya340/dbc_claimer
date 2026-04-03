@@ -22,15 +22,23 @@ pub struct PoolClaimers {
     pub claimer_addresses: Vec<Pubkey>,
     #[max_len(5)]
     pub claimer_bps: Vec<u16>,
-    #[max_len(5)]
-    pub claimed_base: Vec<u64>,
-    #[max_len(5)]
-    pub claimed_quote: Vec<u64>,
     pub bump: u8,
-    /// Which AMM this pool is associated with.
     pub pool_state: PoolState,
-    /// Unix timestamp (seconds) of the last time fees were claimed or distributed.
     pub last_claimed: i64,
-    /// Unix timestamp (seconds) of the last time fees were distributed.
     pub last_distributed: i64,
+}
+
+// global_state.rs (add alongside PoolClaimers)
+
+#[account]
+#[derive(InitSpace)]
+pub struct ClaimerState {
+    pub pool: Pubkey,
+    pub claimer: Pubkey,
+    pub is_enabled: bool,
+    pub pending_base: u64,
+    pub pending_quote: u64,
+    pub claimed_base: u64,
+    pub claimed_quote: u64,
+    pub bump: u8,
 }
