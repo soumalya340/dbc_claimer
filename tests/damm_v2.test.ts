@@ -1643,4 +1643,448 @@ describe("dbc-swap:damm-v2", () => {
     );
     assert.isFalse(stateAfter.isEnabled);
   });
+
+  it("test7: re-init claimer list succeeds; Alice & Bob pending vaults survive and admin_sweep still works", async () => {
+    const payer = (provider.wallet as any).payer;
+
+    const alice = await createRandomKeyPair(2);
+    const bob = await createRandomKeyPair(2);
+    const charlie = await createRandomKeyPair(2);
+    const user1 = await createRandomKeyPair(2);
+    const user2 = await createRandomKeyPair(2);
+
+    const { secondPositionNftMint } = await setupPoolAndMigrate(
+      payer,
+      feeClaimerPda,
+    );
+
+    const cpAmm = new CpAmm(connection);
+    const position = derivePositionAddress(secondPositionNftMint);
+    const positionState = await cpAmm.fetchPositionState(position);
+    const dammV2Pool = positionState.pool;
+    const poolState = await cpAmm.fetchPoolState(dammV2Pool);
+
+    const cpAmmPoolClaimersPda = derivePoolClaimersPda(
+      dammV2Pool,
+      program.programId,
+    );
+
+    const baseTp7 = getTokenProgram(poolState.tokenAFlag);
+    const quoteTp7 = getTokenProgram(poolState.tokenBFlag);
+
+    const claimersAbc = [alice.publicKey, bob.publicKey, charlie.publicKey];
+    const bpsAbc = [3000, 3000, 4000] as const;
+
+    await program.methods
+      .initializePoolClaimers(claimersAbc, [...bpsAbc], { dammV2: {} })
+      .accounts({
+        deployer: payer.publicKey,
+        pool: dammV2Pool,
+        baseMint: poolState.tokenAMint,
+        quoteMint: poolState.tokenBMint,
+        poolClaimers: cpAmmPoolClaimersPda,
+        tokenBaseProgram: baseTp7,
+        tokenQuoteProgram: quoteTp7,
+        systemProgram: SystemProgram.programId,
+      } as any)
+      .remainingAccounts(
+        buildInitClaimersRemainingAccounts(
+          dammV2Pool,
+          claimersAbc,
+          program.programId,
+        ),
+      )
+      .signers([payer])
+      .rpc();
+
+    const stranger = await createRandomKeyPair(12);
+    await claimPositionFeeModule(
+      stranger,
+      dammV2Pool,
+      poolState,
+      1,
+      position,
+      secondPositionNftMint,
+      cpAmmPoolClaimersPda,
+      program,
+      feeClaimerPda,
+      false,
+    );
+
+    const { baseFeeVault, quoteFeeVault } = deriveCpAmmFeeVaults(
+      dammV2Pool,
+      poolState.tokenAMint,
+      poolState.tokenBMint,
+      program.programId,
+    );
+
+    const quoteBalBefore = Number(
+      (await provider.connection.getTokenAccountBalance(quoteFeeVault)).value
+        .amount,
+    );
+    const baseBalBefore = Number(
+      (await provider.connection.getTokenAccountBalance(baseFeeVault)).value
+        .amount,
+    );
+    assert.isTrue(
+      quoteBalBefore > 0 || baseBalBefore > 0,
+      "fee vaults should be non-empty after claim",
+    );
+
+    // ATAs for distribute_fees remaining accounts (Charlie enabled path validates his ATAs)
+    const createAtaAbc = new anchor.web3.Transaction().add(
+      ...claimersAbc.flatMap((claimer) => [
+        createAssociatedTokenAccountIdempotentInstruction(
+          payer.publicKey,
+          getAssociatedTokenAddressSync(
+            poolState.tokenAMint,
+            claimer,
+            false,
+            baseTp7,
+          ),
+          claimer,
+          poolState.tokenAMint,
+          baseTp7,
+        ),
+        createAssociatedTokenAccountIdempotentInstruction(
+          payer.publicKey,
+          getAssociatedTokenAddressSync(
+            poolState.tokenBMint,
+            claimer,
+            false,
+            quoteTp7,
+          ),
+          claimer,
+          poolState.tokenBMint,
+          quoteTp7,
+        ),
+      ]),
+    );
+    await sendAndConfirmTransaction(provider.connection, createAtaAbc, [payer]);
+
+    const aliceStatePda = deriveClaimerStatePda(
+      dammV2Pool,
+      alice.publicKey,
+      program.programId,
+    );
+    const bobStatePda = deriveClaimerStatePda(
+      dammV2Pool,
+      bob.publicKey,
+      program.programId,
+    );
+
+    await program.methods
+      .setClaimerEnabled(false)
+      .accounts({
+        admin: payer.publicKey,
+        pool: dammV2Pool,
+        claimer: alice.publicKey,
+        claimerState: aliceStatePda,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    await program.methods
+      .setClaimerEnabled(false)
+      .accounts({
+        admin: payer.publicKey,
+        pool: dammV2Pool,
+        claimer: bob.publicKey,
+        claimerState: bobStatePda,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    await distribute_fees(
+      program,
+      payer,
+      dammV2Pool,
+      cpAmmPoolClaimersPda,
+      baseFeeVault,
+      quoteFeeVault,
+      poolState,
+      feeClaimerPda,
+      baseTp7,
+      quoteTp7,
+      buildDistributeFeesRemainingAccounts(
+        dammV2Pool,
+        claimersAbc,
+        poolState.tokenAMint,
+        poolState.tokenBMint,
+        baseTp7,
+        quoteTp7,
+        program.programId,
+      ),
+    );
+
+    const alicePendingBase = deriveClaimerPendingBaseVault(
+      dammV2Pool,
+      alice.publicKey,
+      program.programId,
+    );
+    const alicePendingQuote = deriveClaimerPendingQuoteVault(
+      dammV2Pool,
+      alice.publicKey,
+      program.programId,
+    );
+    const bobPendingBase = deriveClaimerPendingBaseVault(
+      dammV2Pool,
+      bob.publicKey,
+      program.programId,
+    );
+    const bobPendingQuote = deriveClaimerPendingQuoteVault(
+      dammV2Pool,
+      bob.publicKey,
+      program.programId,
+    );
+
+    const aliceQuotePending = Number(
+      (await provider.connection.getTokenAccountBalance(alicePendingQuote))
+        .value.amount,
+    );
+    const bobQuotePending = Number(
+      (await provider.connection.getTokenAccountBalance(bobPendingQuote)).value
+        .amount,
+    );
+    const aliceBasePending = Number(
+      (await provider.connection.getTokenAccountBalance(alicePendingBase)).value
+        .amount,
+    );
+    const bobBasePending = Number(
+      (await provider.connection.getTokenAccountBalance(bobPendingBase)).value
+        .amount,
+    );
+
+    const expAliceQuote = Math.floor((quoteBalBefore * bpsAbc[0]) / 10_000);
+    const expBobQuote = Math.floor((quoteBalBefore * bpsAbc[1]) / 10_000);
+    const expAliceBase = Math.floor((baseBalBefore * bpsAbc[0]) / 10_000);
+    const expBobBase = Math.floor((baseBalBefore * bpsAbc[1]) / 10_000);
+
+    assert.strictEqual(
+      aliceQuotePending,
+      expAliceQuote,
+      "Alice pending quote should match her BPS share (disabled)",
+    );
+    assert.strictEqual(
+      bobQuotePending,
+      expBobQuote,
+      "Bob pending quote should match his BPS share (disabled)",
+    );
+    assert.strictEqual(aliceBasePending, expAliceBase);
+    assert.strictEqual(bobBasePending, expBobBase);
+
+    const aliceStateAfterDist = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      alice.publicKey,
+    );
+    const bobStateAfterDist = await fetchClaimerState(
+      program,
+      dammV2Pool,
+      bob.publicKey,
+    );
+    assert.strictEqual(
+      aliceStateAfterDist.claimedQuote.toNumber(),
+      0,
+      "disabled claimer: claimed_quote stays 0; funds sit in pending vault",
+    );
+    assert.strictEqual(bobStateAfterDist.claimedQuote.toNumber(), 0);
+
+    // Re-initialize: drop Alice & Bob, add user1 & user2, keep Charlie — must not throw
+    const claimersUuc = [user1.publicKey, user2.publicKey, charlie.publicKey];
+    const bpsUuc = [3400, 3300, 3300] as const;
+
+    await program.methods
+      .initializePoolClaimers(claimersUuc, [...bpsUuc], { dammV2: {} })
+      .accounts({
+        deployer: payer.publicKey,
+        pool: dammV2Pool,
+        baseMint: poolState.tokenAMint,
+        quoteMint: poolState.tokenBMint,
+        poolClaimers: cpAmmPoolClaimersPda,
+        tokenBaseProgram: baseTp7,
+        tokenQuoteProgram: quoteTp7,
+        systemProgram: SystemProgram.programId,
+      } as any)
+      .remainingAccounts(
+        buildInitClaimersRemainingAccounts(
+          dammV2Pool,
+          claimersUuc,
+          program.programId,
+        ),
+      )
+      .signers([payer])
+      .rpc();
+
+    const afterReinit = await fetchclaimerspdainfo(
+      program,
+      cpAmmPoolClaimersPda,
+      false,
+    );
+    assert.deepEqual(
+      afterReinit.claimerAddresses.map((k) => k.toBase58()),
+      claimersUuc.map((k) => k.toBase58()),
+    );
+    assert.deepEqual(afterReinit.claimerBps, [...bpsUuc]);
+
+    // Pending balances for Alice & Bob unchanged (not referenced by PoolClaimers anymore)
+    assert.strictEqual(
+      Number(
+        (await provider.connection.getTokenAccountBalance(alicePendingQuote))
+          .value.amount,
+      ),
+      expAliceQuote,
+    );
+    assert.strictEqual(
+      Number(
+        (await provider.connection.getTokenAccountBalance(bobPendingQuote))
+          .value.amount,
+      ),
+      expBobQuote,
+    );
+
+    const sweepAliceRecipient = await createRandomKeyPair(2);
+    const sweepBobRecipient = await createRandomKeyPair(2);
+
+    const aliceDestBase = getAssociatedTokenAddressSync(
+      poolState.tokenAMint,
+      sweepAliceRecipient.publicKey,
+      false,
+      baseTp7,
+    );
+    const aliceDestQuote = getAssociatedTokenAddressSync(
+      poolState.tokenBMint,
+      sweepAliceRecipient.publicKey,
+      false,
+      quoteTp7,
+    );
+    const bobDestBase = getAssociatedTokenAddressSync(
+      poolState.tokenAMint,
+      sweepBobRecipient.publicKey,
+      false,
+      baseTp7,
+    );
+    const bobDestQuote = getAssociatedTokenAddressSync(
+      poolState.tokenBMint,
+      sweepBobRecipient.publicKey,
+      false,
+      quoteTp7,
+    );
+
+    const createSweepAtas = new anchor.web3.Transaction().add(
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        aliceDestBase,
+        sweepAliceRecipient.publicKey,
+        poolState.tokenAMint,
+        baseTp7,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        aliceDestQuote,
+        sweepAliceRecipient.publicKey,
+        poolState.tokenBMint,
+        quoteTp7,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        bobDestBase,
+        sweepBobRecipient.publicKey,
+        poolState.tokenAMint,
+        baseTp7,
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer.publicKey,
+        bobDestQuote,
+        sweepBobRecipient.publicKey,
+        poolState.tokenBMint,
+        quoteTp7,
+      ),
+    );
+    await sendAndConfirmTransaction(provider.connection, createSweepAtas, [
+      payer,
+    ]);
+
+    await program.methods
+      .adminSweepClaimer()
+      .accounts({
+        admin: payer.publicKey,
+        pool: dammV2Pool,
+        claimer: alice.publicKey,
+        claimerState: aliceStatePda,
+        claimerPendingBaseVault: alicePendingBase,
+        claimerPendingQuoteVault: alicePendingQuote,
+        baseMint: poolState.tokenAMint,
+        quoteMint: poolState.tokenBMint,
+        destinationBaseAta: aliceDestBase,
+        destinationQuoteAta: aliceDestQuote,
+        tokenBaseProgram: baseTp7,
+        tokenQuoteProgram: quoteTp7,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    await program.methods
+      .adminSweepClaimer()
+      .accounts({
+        admin: payer.publicKey,
+        pool: dammV2Pool,
+        claimer: bob.publicKey,
+        claimerState: bobStatePda,
+        claimerPendingBaseVault: bobPendingBase,
+        claimerPendingQuoteVault: bobPendingQuote,
+        baseMint: poolState.tokenAMint,
+        quoteMint: poolState.tokenBMint,
+        destinationBaseAta: bobDestBase,
+        destinationQuoteAta: bobDestQuote,
+        tokenBaseProgram: baseTp7,
+        tokenQuoteProgram: quoteTp7,
+      } as any)
+      .signers([payer])
+      .rpc();
+
+    assert.strictEqual(
+      Number(
+        (await provider.connection.getTokenAccountBalance(aliceDestQuote)).value
+          .amount,
+      ),
+      expAliceQuote,
+    );
+    assert.strictEqual(
+      Number(
+        (await provider.connection.getTokenAccountBalance(aliceDestBase)).value
+          .amount,
+      ),
+      expAliceBase,
+    );
+    assert.strictEqual(
+      Number(
+        (await provider.connection.getTokenAccountBalance(bobDestQuote)).value
+          .amount,
+      ),
+      expBobQuote,
+    );
+    assert.strictEqual(
+      Number(
+        (await provider.connection.getTokenAccountBalance(bobDestBase)).value
+          .amount,
+      ),
+      expBobBase,
+    );
+
+    assert.strictEqual(
+      Number(
+        (await provider.connection.getTokenAccountBalance(alicePendingQuote))
+          .value.amount,
+      ),
+      0,
+    );
+    assert.strictEqual(
+      Number(
+        (await provider.connection.getTokenAccountBalance(bobPendingQuote))
+          .value.amount,
+      ),
+      0,
+    );
+  });
 });
