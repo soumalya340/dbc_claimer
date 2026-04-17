@@ -276,7 +276,7 @@ pub struct InitializePoolClaimers<'info> {
     pub quote_mint: InterfaceAccount<'info, Mint>,
 
     #[account(
-        init_if_needed,
+        init,
         payer = deployer,
         space = ANCHOR_DISCRIMINATOR_SIZE + PoolClaimers::INIT_SPACE,
         seeds = [POOL_CLAIMERS_SEED, pool.key().as_ref()],
