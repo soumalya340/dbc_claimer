@@ -26,7 +26,10 @@ import {
   DBC_PROGRAM_ID,
   client,
   fetchclaimerspdainfo,
+  fetchClaimerState,
   distribute_fees,
+  buildInitClaimersRemainingAccounts,
+  buildDistributeFeesRemainingAccounts,
 } from "./utils/helpers";
 
 import { DbcSwap } from "../target/types/dbc_swap";
@@ -78,13 +81,24 @@ describe("dbc-swap:dbc", () => {
 
     // Step 1: Admin initializes pool claimers for the DBC pool (sole 100% claimer)
     await program.methods
-      .setPoolClaimers([payer.publicKey], [10_000], { dbc: {} })
+      .initializePoolClaimers([payer.publicKey], [10_000], { dbc: {} })
       .accounts({
         deployer: payer.publicKey,
         pool: poolAddress,
+        baseMint: baseMint.publicKey,
+        quoteMint: WSOL_MINT,
         poolClaimers: dbcPoolClaimersPda,
+        tokenBaseProgram: TOKEN_2022_PROGRAM_ID,
+        tokenQuoteProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       } as any)
+      .remainingAccounts(
+        buildInitClaimersRemainingAccounts(
+          poolAddress,
+          [payer.publicKey],
+          program.programId,
+        ),
+      )
       .signers([payer])
       .rpc();
 
@@ -94,10 +108,16 @@ describe("dbc-swap:dbc", () => {
       false,
     );
     assert.deepEqual(initialInfo.claimerBps, [10_000]);
-    assert.strictEqual(initialInfo.claimedBase[0].toNumber(), 0);
-    assert.strictEqual(initialInfo.claimedQuote[0].toNumber(), 0);
     assert.strictEqual(initialInfo.lastDistributed.toNumber(), 0);
     assert.strictEqual(initialInfo.lastClaimed.toNumber(), 0);
+
+    const payerClaimerState = await fetchClaimerState(
+      program,
+      poolAddress,
+      payer.publicKey,
+    );
+    assert.strictEqual(payerClaimerState.claimedBase.toNumber(), 0);
+    assert.strictEqual(payerClaimerState.claimedQuote.toNumber(), 0);
 
     const { current: unclaimed } = await client.state.getPoolFeeMetrics(
       poolAddress,
@@ -205,6 +225,16 @@ describe("dbc-swap:dbc", () => {
     await sendAndConfirmTransaction(provider.connection, createAtaTx, [payer]);
 
     // Step 7: Distribute fees — 100% to admin
+    const distributeRem1 = buildDistributeFeesRemainingAccounts(
+      poolAddress,
+      [payer.publicKey],
+      baseMint.publicKey,
+      WSOL_MINT,
+      TOKEN_2022_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      program.programId,
+    );
+
     await distribute_fees(
       program,
       payer,
@@ -216,10 +246,7 @@ describe("dbc-swap:dbc", () => {
       feeClaimerPda,
       TOKEN_2022_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
-      [
-        { pubkey: payerBaseAta, isSigner: false, isWritable: true },
-        { pubkey: payerQuoteAta, isSigner: false, isWritable: true },
-      ],
+      distributeRem1,
     );
 
     // Step 8: Assert admin received exactly 100% of the quote fees
@@ -268,19 +295,28 @@ describe("dbc-swap:dbc", () => {
       program.programId,
     );
 
+    const claimers = [payer.publicKey, user2.publicKey, user3.publicKey];
+
     // ── Step 1: Initialize pool claimers — admin 20%, user2 30%, user3 50% ──
     await program.methods
-      .setPoolClaimers(
-        [payer.publicKey, user2.publicKey, user3.publicKey],
-        [2000, 3000, 5000],
-        { dbc: {} },
-      )
+      .initializePoolClaimers(claimers, [2000, 3000, 5000], { dbc: {} })
       .accounts({
         deployer: payer.publicKey,
         pool: poolAddress,
+        baseMint: baseMint.publicKey,
+        quoteMint: WSOL_MINT,
         poolClaimers: dbcPoolClaimersPda,
+        tokenBaseProgram: TOKEN_2022_PROGRAM_ID,
+        tokenQuoteProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       } as any)
+      .remainingAccounts(
+        buildInitClaimersRemainingAccounts(
+          poolAddress,
+          claimers,
+          program.programId,
+        ),
+      )
       .signers([payer])
       .rpc();
 
@@ -291,16 +327,14 @@ describe("dbc-swap:dbc", () => {
       false,
     );
     assert.deepEqual(initialInfo.claimerBps, [2000, 3000, 5000]);
-    assert.deepEqual(
-      initialInfo.claimedBase.map((n: anchor.BN) => n.toNumber()),
-      [0, 0, 0],
-    );
-    assert.deepEqual(
-      initialInfo.claimedQuote.map((n: anchor.BN) => n.toNumber()),
-      [0, 0, 0],
-    );
     assert.strictEqual(initialInfo.lastDistributed.toNumber(), 0);
     assert.strictEqual(initialInfo.lastClaimed.toNumber(), 0);
+
+    for (const c of claimers) {
+      const s = await fetchClaimerState(program, poolAddress, c);
+      assert.strictEqual(s.claimedBase.toNumber(), 0);
+      assert.strictEqual(s.claimedQuote.toNumber(), 0);
+    }
 
     // ── Step 3: Round-1 swap to generate DBC trading fees ───────────────────
     await swap(payer, poolAddress, 5, false);
@@ -323,7 +357,6 @@ describe("dbc-swap:dbc", () => {
     const dbcPoolState = await client.state.getPool(poolAddress);
 
     // ── Step 5: Create ATAs for all 3 claimers ───────────────────────────────
-    const claimers = [payer.publicKey, user2.publicKey, user3.publicKey];
     const baseATAs = claimers.map((c) =>
       getAssociatedTokenAddressSync(
         baseMint.publicKey,
@@ -394,10 +427,15 @@ describe("dbc-swap:dbc", () => {
     );
 
     // ── Step 7: Distribute round-1 fees ─────────────────────────────────────
-    const remainingAccounts = claimers.flatMap((_, i) => [
-      { pubkey: baseATAs[i], isSigner: false, isWritable: true },
-      { pubkey: quoteATAs[i], isSigner: false, isWritable: true },
-    ]);
+    const distributeRemR1 = buildDistributeFeesRemainingAccounts(
+      poolAddress,
+      claimers,
+      baseMint.publicKey,
+      WSOL_MINT,
+      TOKEN_2022_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      program.programId,
+    );
 
     await distribute_fees(
       program,
@@ -410,7 +448,7 @@ describe("dbc-swap:dbc", () => {
       feeClaimerPda,
       TOKEN_2022_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
-      remainingAccounts,
+      distributeRemR1,
     );
 
     // ── Step 8: Assert proportional payouts — 20% / 30% / 50% ──────────────
@@ -424,9 +462,25 @@ describe("dbc-swap:dbc", () => {
     const user2Expected1 = Math.floor((quoteAmount1 * 3000) / 10_000);
     const user3Expected1 = quoteAmount1 - payerExpected1 - user2Expected1;
 
-    assert.strictEqual(pdaRound1.claimedQuote[0].toNumber(), payerExpected1);
-    assert.strictEqual(pdaRound1.claimedQuote[1].toNumber(), user2Expected1);
-    assert.strictEqual(pdaRound1.claimedQuote[2].toNumber(), user3Expected1);
+    const round1PayerState = await fetchClaimerState(
+      program,
+      poolAddress,
+      payer.publicKey,
+    );
+    const round1User2State = await fetchClaimerState(
+      program,
+      poolAddress,
+      user2.publicKey,
+    );
+    const round1User3State = await fetchClaimerState(
+      program,
+      poolAddress,
+      user3.publicKey,
+    );
+
+    assert.strictEqual(round1PayerState.claimedQuote.toNumber(), payerExpected1);
+    assert.strictEqual(round1User2State.claimedQuote.toNumber(), user2Expected1);
+    assert.strictEqual(round1User3State.claimedQuote.toNumber(), user3Expected1);
     assert.isAbove(pdaRound1.lastDistributed.toNumber(), 0);
     assert.isAbove(pdaRound1.lastClaimed.toNumber(), 0);
 
@@ -456,19 +510,25 @@ describe("dbc-swap:dbc", () => {
       false,
     );
     assert.deepEqual(pdaAfterBpsUpdate.claimerBps, [5000, 5000, 0]);
-    // claimedQuote history is preserved (not reset by updateClaimersBps)
-    assert.strictEqual(
-      pdaAfterBpsUpdate.claimedQuote[0].toNumber(),
-      payerExpected1,
+    // claimedQuote on ClaimerState is preserved (not reset by updateClaimersBps)
+    const afterBpsPayer = await fetchClaimerState(
+      program,
+      poolAddress,
+      payer.publicKey,
     );
-    assert.strictEqual(
-      pdaAfterBpsUpdate.claimedQuote[1].toNumber(),
-      user2Expected1,
+    const afterBpsUser2 = await fetchClaimerState(
+      program,
+      poolAddress,
+      user2.publicKey,
     );
-    assert.strictEqual(
-      pdaAfterBpsUpdate.claimedQuote[2].toNumber(),
-      user3Expected1,
+    const afterBpsUser3 = await fetchClaimerState(
+      program,
+      poolAddress,
+      user3.publicKey,
     );
+    assert.strictEqual(afterBpsPayer.claimedQuote.toNumber(), payerExpected1);
+    assert.strictEqual(afterBpsUser2.claimedQuote.toNumber(), user2Expected1);
+    assert.strictEqual(afterBpsUser3.claimedQuote.toNumber(), user3Expected1);
 
     // ── Step 10: Round-2 swap to generate new DBC fees ───────────────────────
     await swap(user1, poolAddress, 5, false);
@@ -522,19 +582,32 @@ describe("dbc-swap:dbc", () => {
       feeClaimerPda,
       TOKEN_2022_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
-      remainingAccounts,
+      distributeRemR1,
     );
 
     // ── Step 13: Assert delta on claimedQuote reflects 50% / 50% / 0% ───────
-    const pdaRound2 = await fetchclaimerspdainfo(
+    const round2PayerState = await fetchClaimerState(
       program,
-      dbcPoolClaimersPda,
-      false,
+      poolAddress,
+      payer.publicKey,
+    );
+    const round2User2State = await fetchClaimerState(
+      program,
+      poolAddress,
+      user2.publicKey,
+    );
+    const round2User3State = await fetchClaimerState(
+      program,
+      poolAddress,
+      user3.publicKey,
     );
 
-    const payerDelta = pdaRound2.claimedQuote[0].toNumber() - payerExpected1;
-    const user2Delta = pdaRound2.claimedQuote[1].toNumber() - user2Expected1;
-    const user3Delta = pdaRound2.claimedQuote[2].toNumber() - user3Expected1;
+    const payerDelta =
+      round2PayerState.claimedQuote.toNumber() - payerExpected1;
+    const user2Delta =
+      round2User2State.claimedQuote.toNumber() - user2Expected1;
+    const user3Delta =
+      round2User3State.claimedQuote.toNumber() - user3Expected1;
 
     const payerExpected2 = Math.floor((quoteAmount2 * 5000) / 10_000);
     const user2Expected2 = Math.floor((quoteAmount2 * 5000) / 10_000);

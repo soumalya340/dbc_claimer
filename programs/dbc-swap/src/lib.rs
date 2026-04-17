@@ -1,3 +1,4 @@
+mod claimers_state;
 mod consts;
 mod damm_v2_endpoints;
 mod dbc_endpoints;
@@ -5,14 +6,11 @@ mod distribute_fees;
 mod err;
 mod events;
 mod global_state;
-mod set_pool_claimers;
-mod update_claimers_bps;
 
+use crate::claimers_state::*;
 use crate::damm_v2_endpoints::*;
 use crate::dbc_endpoints::*;
 use crate::global_state::PoolState;
-use crate::set_pool_claimers::*;
-use crate::update_claimers_bps::*;
 use anchor_lang::prelude::*;
 use damm_v2::cp_amm;
 use distribute_fees::*;
@@ -35,13 +33,13 @@ pub mod dbc_swap {
     /// a specific pool. Only callable by DEPLOYER_ADDRESS.
     /// Resets all claimed amounts to zero on each call.
     /// `pool_state` must be `Dbc` or `DammV2` — determines which fee path applies.
-    pub fn set_pool_claimers(
-        ctx: Context<SetPoolClaimers>,
+    pub fn initialize_pool_claimers<'info>(
+        ctx: Context<'_, '_, '_, 'info, InitializePoolClaimers<'info>>,
         claimer_addresses: Vec<Pubkey>,
         claimer_bps: Vec<u16>,
         pool_state: PoolState,
     ) -> Result<()> {
-        set_pool_claimers::handle(ctx, claimer_addresses, claimer_bps, pool_state)
+        initialize_pool_claimers::handle(ctx, claimer_addresses, claimer_bps, pool_state)
     }
 
     /// Admin-only — updates only the BPS shares of the existing claimer list
@@ -79,7 +77,7 @@ pub mod dbc_swap {
     /// Designed for the DAMM v2 path. Remaining accounts must be passed as
     /// [claimer_0_base_ata, claimer_0_quote_ata, claimer_1_base_ata, ...].
     pub fn distribute_fees<'info>(
-        ctx: Context<'_, '_, '_, 'info, DistributeFees<'info>>,
+        ctx: Context<'_, '_, 'info, 'info, DistributeFees<'info>>,
     ) -> Result<()> {
         distribute_fees::handle(ctx)
     }
@@ -99,5 +97,16 @@ pub mod dbc_swap {
         token_b_amount_threshold: u64,
     ) -> Result<()> {
         remove_all_liquidity::handle(ctx, token_a_amount_threshold, token_b_amount_threshold)
+    }
+
+    /// Admin-only — enables or disables a claimer for live `distribute_fees` payouts.
+    pub fn set_claimer_enabled(ctx: Context<SetClaimerEnabled>, is_enabled: bool) -> Result<()> {
+        set_claimer_enabled::handle(ctx, is_enabled)
+    }
+
+    /// Admin-only — transfers `pending_base` / `pending_quote` from fee vaults to
+    /// the supplied destination ATAs (e.g. after a claimer was disabled).
+    pub fn admin_sweep_claimer(ctx: Context<AdminSweepClaimer>) -> Result<()> {
+        admin_sweep_claimer::handle(ctx)
     }
 }

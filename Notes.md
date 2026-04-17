@@ -31,3 +31,6 @@ const transaction = await client.migration.migrateToDammV2({
 solana program dump -u mainnet-beta \
   cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG \
   tests/programs/cpmm.so
+
+
+solana program show --buffers --keypair ~/.config/solana/id.json -u mainnet

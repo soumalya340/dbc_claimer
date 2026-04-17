@@ -1,0 +1,4147 @@
+{
+  "network": "devnet",
+  "collectedAt": "2026-03-23T02:47:32.691Z",
+  "total": 36,
+  "configs": [
+    {
+      "config": "HdqGCsprdhmgqaCXjJzGnKib2SGQvmT9XKYmR7ZjMqmi",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              45,
+              49,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "0e",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "GkC7zppTNPjBeoZfKCR9ExbNSycpwi5VphvktqpyPdx3",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              144,
+              0,
+              88,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              76,
+              190,
+              48,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 3826,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "39",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "Gjsr13rp68pMXrpwekfygphynT1hjRzbLLQLHTeQNfQq",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              90,
+              98,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 3826,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "10",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "2rGPJyTHFvHH44hVfcotPXjXNGHCsiLFUaRfVkXXVCYB",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              120,
+              0,
+              60,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              9,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "37",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "84tnQ4tQ4N8QGwoEEXcCdWfjSeuL8SfNjsdZWLZ9UiY4",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              144,
+              0,
+              88,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              213,
+              220,
+              50,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 1913,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "31",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "FivzJShpkDj7tdLv6hYSyLcZEAF2FsqNfw8W8mPc8op2",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              90,
+              98,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "12",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "F28LTGGMKxKmicskcBpVd5BD2Dj73bhcvVbBiCBpg7fQ",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              144,
+              0,
+              88,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              253,
+              169,
+              52,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 286,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "21",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "9YmoetVvZx1vrfJ9fD8X5YG3FQXREK6ZiPzRghP33Wbf",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              135,
+              147,
+              3,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "16",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "4A95FoEsswvuCEDSFnd8uXBgdkQPqzrjJv2roev8c9mm",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              144,
+              0,
+              88,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              141,
+              183,
+              52,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 239,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "19",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "9RuAyDH81GB9dhks6MzHva2objQJxHvqRRfyKKdfmkxk",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              192,
+              198,
+              45,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 286,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "04",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "G6Sukhgcmaf32PucWqCTMHn4jtWjE2TZTk59eQPSVKsy",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              120,
+              0,
+              60,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              176,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 239,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "1d",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "GnERyyZgr9JdZ5dCFC46APkcPNZdUQgrJmRqoeBX55dg",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              120,
+              0,
+              60,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              208,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "3f",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "6Vt8pYzHmtMr4H5v1qp8gR9uot11xVfbjTHmbm9SXMGB",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              120,
+              0,
+              60,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "2f",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "EZDtwCGcoe3f7BWFxaMrYDTq2WZMrcBZbUktoBKYvYiM",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              120,
+              0,
+              60,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 956,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "2d",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "FzvMYBQ29z2J21QPsABpJYYxQBEKGsxA6w6J2HYceFj8",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              160,
+              37,
+              38,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "02",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "2gnXvkRvYZ3iosu4d8G7KmZR6Ki9GXPMoxbx5NR4e8bz",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              144,
+              0,
+              88,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              253,
+              169,
+              52,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "23",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "DJN8YHxQKZnF7bL2GwuKNB2UcfhKCqRspfLe7YYEN3rr",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              120,
+              0,
+              60,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              175,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "47",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "5LWDYbiD3LwEhAd3eeHpjJscACKo4XdTDzycdHFSBCvE",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              144,
+              0,
+              88,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              213,
+              220,
+              50,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "33",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "2yAJha5NVgq5mEitTUvdWSUKrcYvxAAc2H6rPDbEQqSu",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              120,
+              0,
+              60,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              175,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 5739,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "45",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "9jma77W3ZsJXPude5tnmC51EhMjKHzwsHCz1gFmbfJBc",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              120,
+              0,
+              60,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              176,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "1f",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "GXZLjqmebpsy74vqTD6DqSTugTKVwoTi8fZwLAXBsMNN",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              128,
+              150,
+              152,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "0a",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "6Fs8KLaRA1T1aecBVca4VPpJi27oAPLDZUPbrUocEN12",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              144,
+              0,
+              88,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              196,
+              159,
+              46,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "43",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "FjPMSBmrawY7b5We2jv7asshi6ZWnMrfYSPUn5ZDzqmA",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              120,
+              0,
+              60,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              9,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 1913,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "35",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "3KLdspUofc75aaEAJdBo1o6D6cyzXJVtGB8PgpWJEiaR",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              192,
+              198,
+              45,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "06",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "HrBAyo6rf8i6dF8S8kh6QsjTmesmFhDoHvwSrsUHKdbX",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              144,
+              0,
+              88,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              26,
+              236,
+              51,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 956,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "29",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "A4JGKvpXKGfpkSgBSLmR7obESYhqqaeVEve71nWmS4zU",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              144,
+              0,
+              88,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              76,
+              190,
+              48,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "3b",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "EVRn9bAekgZsVVAHt25AUjA7qpKh4ac7uUMpoSGqgS5U",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              128,
+              150,
+              152,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 956,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "08",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "4hKGzanVuqCaVHbXm9rXnYJeJvzWcq5HDogKcrVYh4gP",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              120,
+              0,
+              60,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              208,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 3826,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "3d",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "5UMffQ4jEJgjS2rFoyTWNyh3Xf3ek3LFPyr89RfYQRbu",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              135,
+              147,
+              3,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 5739,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "14",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "G9EUpuBrDZHQAeaifkx5xbiajAGbB6HHJ4xcVmZyd3eQ",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              144,
+              0,
+              88,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              141,
+              183,
+              52,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "1b",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "uPhetWqk4hhf9swL8xdbABfmGh4GyQ9nVAeYpvnC6pb",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              120,
+              0,
+              60,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              161,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 286,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "25",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "8CNy9goNQNLM4wtgRw528tUQGMKD3vSuFRZY2gLGLLvF",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              160,
+              37,
+              38,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 239,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "00",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "2rbDaKQjxiFgMsYoQxLRaPvtXuLFUUQmypN5bYmJqPjY",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              144,
+              0,
+              88,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              196,
+              159,
+              46,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 5739,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "41",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "G8pJy5Hsxeko5srUxDUF6cpuPJ3r53MbMucbpLhNC8NU",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              45,
+              49,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 1,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 14460000,
+            "variableFeeControl": 1913,
+            "binStep": 1,
+            "filterPeriod": 10,
+            "decayPeriod": 120,
+            "reductionFactor": 5000,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "068db8bac710cb"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "0c",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "69CwWBvDBGvZ9P6bB9UnMwnDcQ136UFuDn2UEZ7Rb5We",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              144,
+              0,
+              88,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              26,
+              236,
+              51,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "2b",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    },
+    {
+      "config": "3z9HHXyWEXc7L3EPEQ5mN8cPoq9wBZr8y2bRiEwUu9u2",
+      "state": {
+        "vaultConfigKey": "11111111111111111111111111111111",
+        "poolCreatorAuthority": "11111111111111111111111111111111",
+        "poolFees": {
+          "baseFee": {
+            "data": [
+              0,
+              101,
+              205,
+              29,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              120,
+              0,
+              60,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              161,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "dynamicFee": {
+            "initialized": 0,
+            "padding": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "maxVolatilityAccumulator": 0,
+            "variableFeeControl": 0,
+            "binStep": 0,
+            "filterPeriod": 0,
+            "decayPeriod": 0,
+            "reductionFactor": 0,
+            "padding1": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "binStepU128": "00"
+          },
+          "protocolFeePercent": 20,
+          "padding0": 0,
+          "referralFeePercent": 20,
+          "padding1": [
+            0,
+            0,
+            0
+          ],
+          "compoundingFeeBps": 0,
+          "padding2": [
+            "00",
+            "00",
+            "00",
+            "00",
+            "00"
+          ]
+        },
+        "activationType": 1,
+        "collectFeeMode": 0,
+        "configType": 0,
+        "padding0": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "index": "27",
+        "sqrtMinPrice": "0100013b50",
+        "sqrtMaxPrice": "fffec4b1845c1aa94e69579b",
+        "padding1": [
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00",
+          "00"
+        ]
+      }
+    }
+  ]
+}

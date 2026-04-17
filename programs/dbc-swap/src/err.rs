@@ -18,4 +18,8 @@ pub enum DbcSwapError {
     DuplicateClaimerAddress,
     #[msg("pool_state must be Dbc or DammV2 — NotInitialized is not allowed")]
     InvalidPoolState,
+    #[msg("Invalid ClaimerState PDA -- when creating claimer states")]
+    InvalidClaimerStatePda,
+    #[msg("Nothing to claim -- when claiming fees from the parked pool vault")]
+    NothingToClaim,
 }
