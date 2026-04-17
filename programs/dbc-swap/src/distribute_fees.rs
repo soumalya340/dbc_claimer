@@ -4,7 +4,7 @@ use crate::consts::{
 };
 use crate::err::DbcSwapError;
 use crate::events::FeesDistributedDammV2;
-use crate::global_state::{ClaimerState, PoolClaimers};
+use crate::global_state::{ClaimerState, PoolClaimers, PoolState};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::get_associated_token_address_with_program_id;
 use anchor_spl::token_interface::{
@@ -14,6 +14,12 @@ use anchor_spl::token_interface::{
 /// Remaining accounts per claimer (5 total):
 ///   [claimer_state_pda, pending_base_vault, pending_quote_vault, claimer_base_ata, claimer_quote_ata]
 pub fn handle<'info>(ctx: Context<'_, '_, 'info, 'info, DistributeFees<'info>>) -> Result<()> {
+    // Vuln 1: reject pools that were never properly initialized by admin
+    require!(
+        ctx.accounts.pool_claimers.pool_state != PoolState::NotInitialized,
+        DbcSwapError::Unauthorized
+    );
+
     let num_claimers = ctx.accounts.pool_claimers.claimer_addresses.len();
 
     require!(
@@ -92,6 +98,11 @@ pub fn handle<'info>(ctx: Context<'_, '_, 'info, 'info, DistributeFees<'info>>) 
             DbcSwapError::InvalidClaimerStatePda
         );
 
+        // Vuln 4: ensure ClaimerState is owned by this program before deserializing
+        require!(
+            state_info.owner == ctx.program_id,
+            DbcSwapError::InvalidClaimerStatePda
+        );
         let mut state: Account<ClaimerState> = Account::try_from(state_info)?;
 
         // --- Compute share ---

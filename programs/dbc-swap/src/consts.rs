@@ -1,6 +1,6 @@
 use anchor_lang::prelude::Pubkey;
 pub const ADMIN_ADDRESS: Pubkey =
-    anchor_lang::solana_program::pubkey!("cyaibXfQvCC4qKDYNguU4mXryhKjSkszPWkd56KFkrF");
+    anchor_lang::solana_program::pubkey!("ABwFt9iF2sUrffC9SxeCsuGd1hB78GU6u7x7VgpqQDka");
 
 pub const LIQUIDITY_REMOVAL_AUTHORITY: Pubkey =
     anchor_lang::solana_program::pubkey!("cyaibXfQvCC4qKDYNguU4mXryhKjSkszPWkd56KFkrF");
